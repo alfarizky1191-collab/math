@@ -1,0 +1,1916 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Fighter</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{
+  --bg-top:#11172a;
+  --bg-bottom:#1a2340;
+  --card:#f7f9ff;
+  --primary:#3d7bff;
+  --primary-dark:#244c9f;
+  --accent:#f6a531;
+  --success:#3ebd74;
+  --danger:#df4e4e;
+  --text:#1f2a44;
+  --muted:#67779b;
+  --shadow:0 14px 35px rgba(4, 8, 20, 0.28);
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:"Trebuchet MS","Segoe UI",sans-serif;
+  color:var(--text);
+  background:linear-gradient(180deg,var(--bg-top),var(--bg-bottom));
+  min-height:100vh;
+  position:relative;
+}
+
+.cartoon-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  overflow:hidden;
+  background:linear-gradient(180deg,#7ed6df,#74b9ff 58%,#c7f9cc 58%,#7bed9f 100%);
+}
+
+.sun{
+  position:absolute;
+  top:26px;
+  left:26px;
+  width:132px;
+  height:132px;
+  border-radius:50%;
+  background:radial-gradient(circle,#fff9b8,#ffd43b);
+  box-shadow:0 0 80px rgba(255,212,59,0.45);
+}
+
+.cloud{
+  position:absolute;
+  width:190px;
+  height:68px;
+  border-radius:999px;
+  background:#fff;
+  filter:drop-shadow(0 10px 18px rgba(0,0,0,0.08));
+}
+
+.cloud::before,
+.cloud::after{
+  content:"";
+  position:absolute;
+  border-radius:50%;
+  background:#fff;
+}
+
+.cloud::before{width:78px;height:78px;left:18px;top:-28px}
+.cloud::after{width:96px;height:96px;left:72px;top:-24px}
+.cloud-a{top:56px;left:48px}
+.cloud-b{top:92px;right:54px;width:220px}
+
+.hill{
+  position:absolute;
+  bottom:-110px;
+  border-radius:50%;
+}
+
+.hill-a{left:-90px;width:410px;height:230px;background:#6ddf95}
+.hill-b{left:28%;width:430px;height:220px;background:#8ce99a}
+.hill-c{right:-120px;width:520px;height:250px;background:#55efc4}
+
+.flower{
+  position:absolute;
+  bottom:34px;
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  background:#ff7675;
+  box-shadow:22px 0 #feca57,-22px 0 #74b9ff,0 22px #55efc4,0 -22px #a29bfe;
+}
+
+.flower-a{left:110px}
+.flower-b{left:188px;bottom:54px}
+.flower-c{left:320px;bottom:44px}
+
+.animal{
+  position:absolute;
+  bottom:28px;
+  width:108px;
+  height:116px;
+  border-radius:44px;
+  background:#ffeaa7;
+  filter:drop-shadow(0 10px 14px rgba(0,0,0,0.12));
+}
+
+.animal::before{
+  content:"";
+  position:absolute;
+  top:-26px;
+  left:18px;
+  width:72px;
+  height:72px;
+  border-radius:50%;
+  background:inherit;
+}
+
+.animal::after{
+  content:"";
+  position:absolute;
+  left:18px;
+  bottom:14px;
+  width:72px;
+  height:12px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.42);
+}
+
+.animal-bunny{left:54px;background:#ffd6a5}
+.animal-bear{right:72px;background:#c7ecee}
+
+.animal-bunny span,
+.animal-bear span{
+  position:absolute;
+  display:block;
+  background:inherit;
+}
+
+.animal-bunny span:nth-child(1),
+.animal-bunny span:nth-child(2){
+  width:18px;
+  height:44px;
+  border-radius:999px;
+  top:-54px;
+}
+
+.animal-bunny span:nth-child(1){left:22px}
+.animal-bunny span:nth-child(2){left:58px}
+
+.animal-bear span:nth-child(1),
+.animal-bear span:nth-child(2){
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  top:-10px;
+}
+
+.animal-bear span:nth-child(1){left:16px}
+.animal-bear span:nth-child(2){right:16px}
+
+.container{
+  max-width:760px;
+  margin:auto;
+  padding:20px 16px 32px;
+  position:relative;
+  z-index:2;
+}
+
+.hero,
+.panel,
+.game-shell{
+  background:var(--card);
+  border-radius:24px;
+  box-shadow:var(--shadow);
+}
+
+.hero{
+  padding:22px;
+  margin-bottom:16px;
+  background:
+    radial-gradient(circle at top right, rgba(246,165,49,0.24), transparent 35%),
+    radial-gradient(circle at left bottom, rgba(61,123,255,0.22), transparent 35%),
+    #ffffff;
+  border:1px solid rgba(61,123,255,0.18);
+}
+
+.hero h1{
+  margin:0 0 8px;
+  font-size:2rem;
+}
+
+.hero p{
+  margin:0;
+  color:var(--muted);
+}
+
+.panel{
+  padding:18px;
+  margin-bottom:16px;
+}
+
+.profile-grid,
+.stats-grid,
+.action-row,
+.reward-grid{
+  display:grid;
+  gap:12px;
+}
+
+.profile-grid{
+  grid-template-columns:1.4fr .9fr;
+  align-items:end;
+}
+
+.stats-grid{
+  grid-template-columns:repeat(4,1fr);
+  margin-top:16px;
+}
+
+.stat-box{
+  padding:14px;
+  border-radius:18px;
+  background:#f4f8ff;
+  text-align:left;
+}
+
+.stat-label{
+  font-size:0.85rem;
+  color:var(--muted);
+}
+
+.stat-value{
+  display:block;
+  margin-top:6px;
+  font-size:1.3rem;
+  font-weight:700;
+}
+
+label{
+  display:block;
+  text-align:left;
+  font-weight:700;
+  margin-bottom:8px;
+}
+
+input{
+  width:100%;
+  padding:14px;
+  border:2px solid #d9e5ff;
+  border-radius:14px;
+  font-size:1rem;
+}
+
+button{
+  border:none;
+  border-radius:14px;
+  padding:13px 16px;
+  font-size:1rem;
+  font-weight:700;
+  cursor:pointer;
+  transition:transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+}
+
+button:hover{transform:translateY(-1px)}
+button:disabled{cursor:not-allowed;opacity:0.6;transform:none}
+
+.primary-btn{background:var(--primary);color:#fff}
+.secondary-btn{background:#eef4ff;color:var(--primary-dark)}
+.danger-btn{background:#ffe2de;color:#b3261e}
+
+.action-row{
+  grid-template-columns:repeat(2,1fr);
+  margin-top:14px;
+}
+
+.reward-grid{
+  grid-template-columns:1fr 1fr;
+  margin-top:14px;
+}
+
+.reward-box{
+  padding:14px;
+  border-radius:18px;
+  background:#f4f8ff;
+}
+
+.reward-box h3{
+  margin:0 0 10px;
+  font-size:1rem;
+}
+
+.leaderboard-list{
+  display:grid;
+  gap:10px;
+}
+
+.leaderboard-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:12px 14px;
+  border-radius:16px;
+  background:#f7f8fb;
+  border:1px solid #eef1f5;
+}
+
+.leaderboard-rank{
+  width:32px;
+  height:32px;
+  border-radius:50%;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,#ffd166,#ff9f43);
+  color:#fff;
+  font-weight:900;
+}
+
+.avatar-preview{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.avatar-token{
+  width:52px;
+  height:52px;
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:1.7rem;
+  background:linear-gradient(135deg,#fff7cc,#ffd166);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,0.55);
+}
+
+.avatar-meta strong{
+  display:block;
+}
+
+.avatar-choices{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+}
+
+.avatar-card{
+  border:2px solid #d9e5ff;
+  border-radius:16px;
+  background:#fff;
+  padding:10px;
+  text-align:center;
+}
+
+.avatar-card.active{
+  border-color:#f6a531;
+  background:#fff7eb;
+}
+
+.avatar-card.locked{
+  opacity:0.62;
+  background:#eef1f7;
+}
+
+.avatar-card .avatar-icon{
+  display:block;
+  font-size:1.55rem;
+  margin-bottom:6px;
+}
+
+.avatar-card small{
+  display:block;
+  color:var(--muted);
+  margin-top:4px;
+}
+
+.sticker-shelf{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+
+.sticker-card{
+  border-radius:16px;
+  padding:12px 8px;
+  text-align:center;
+  background:#fff;
+  border:2px solid #d9e5ff;
+}
+
+.sticker-card.locked{
+  background:#eef1f7;
+  opacity:0.62;
+}
+
+.sticker-icon{
+  display:block;
+  font-size:1.5rem;
+  margin-bottom:4px;
+}
+
+.menu-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.achievement-list{
+  display:grid;
+  gap:10px;
+}
+
+.achievement-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:12px 14px;
+  border-radius:16px;
+  background:#f7f8fb;
+  border:1px solid #eef1f5;
+}
+
+.achievement-item.unlocked{
+  background:#ecfff1;
+  border-color:#c8f1d2;
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:92px;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:0.82rem;
+  font-weight:700;
+  background:#dde5f3;
+  color:#44506a;
+}
+
+
+
+.rank-display{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:6px;
+}
+
+.rank-badge{
+  position:relative;
+  width:38px;
+  height:38px;
+  flex:0 0 auto;
+}
+
+.rank-badge::before,
+.rank-badge::after{
+  content:"";
+  position:absolute;
+}
+
+.rank-rookie::before{inset:0;border-radius:50%;background:radial-gradient(circle at 30% 30%,#ffffff,#a29bfe 58%,#6c5ce7)}
+.rank-explorer::before{inset:6px;background:linear-gradient(135deg,#81ecec,#00b894);transform:rotate(45deg);border-radius:8px}
+.rank-hunter::before{inset:2px;background:linear-gradient(180deg,#ffeaa7,#f39c12);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.rank-expert::before{inset:1px;background:linear-gradient(135deg,#74b9ff,#0984e3);clip-path:polygon(25% 6%,75% 6%,100% 50%,75% 94%,25% 94%,0 50%)}
+.rank-master::before{inset:0;background:linear-gradient(135deg,#fdcb6e,#e17055);clip-path:polygon(50% 0,61% 34%,98% 35%,69% 57%,79% 92%,50% 72%,21% 92%,31% 57%,2% 35%,39% 34%)}
+.rank-grand::before{inset:1px;background:linear-gradient(135deg,#ff7675,#d63031);clip-path:polygon(10% 90%,10% 20%,28% 40%,50% 12%,72% 40%,90% 20%,90% 90%);border-radius:8px}
+.rank-grand::after{left:10px;right:10px;top:10px;bottom:8px;background:#ffeaa7;clip-path:polygon(0 100%,0 28%,18% 48%,50% 0,82% 48%,100% 28%,100% 100%)}
+.rank-legend::before{inset:0;border-radius:50%;background:radial-gradient(circle,#fff 0 18%,#fd79a8 19% 42%,#e84393 43% 66%,#6c5ce7 67% 100%)}
+.rank-legend::after{left:9px;right:9px;top:9px;bottom:9px;background:linear-gradient(135deg,#fff8b0,#feca57);clip-path:polygon(50% 0,61% 34%,98% 35%,69% 57%,79% 92%,50% 72%,21% 92%,31% 57%,2% 35%,39% 34%)}
+
+#menu{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:10px;
+}
+
+.level-btn{
+  background:linear-gradient(180deg, #4d88ff, #2d62d7);
+  color:#fff;
+  min-height:60px;
+  position:relative;
+}
+
+.boss-stage{
+  background:linear-gradient(180deg,#ffb347,#ff6b6b);
+  box-shadow:0 10px 24px rgba(255,107,107,0.28);
+}
+
+.boss-stage:not(:disabled)::before{
+  content:"BOSS";
+  position:absolute;
+  top:6px;
+  left:8px;
+  font-size:0.66rem;
+  font-weight:900;
+  letter-spacing:0.08em;
+  background:rgba(255,255,255,0.2);
+  padding:3px 6px;
+  border-radius:999px;
+}
+
+.level-btn:disabled{background:#c8d2e2}
+
+.level-complete::after{
+  content:"CLEAR";
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%, -50%) rotate(-14deg);
+  padding:8px 18px;
+  border:4px solid rgba(255,255,255,0.95);
+  border-radius:999px;
+  background:rgba(230,57,70,0.82);
+  color:#fff;
+  font-size:1rem;
+  font-weight:900;
+  letter-spacing:0.08em;
+  box-shadow:0 0 0 6px rgba(255,255,255,0.14);
+}
+.game-shell{
+  display:none;
+  padding:18px;
+  border:1px solid rgba(61,123,255,0.2);
+}
+
+.top-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:8px;
+}
+
+.progress-bar{
+  height:12px;
+  background:#e9edf5;
+  border-radius:999px;
+  overflow:hidden;
+  margin:10px 0;
+}
+
+.progress-fill{
+  height:100%;
+  width:0;
+  background:linear-gradient(90deg, var(--success), #7ad66d);
+  transition:width 0.3s ease;
+}
+
+#question{
+  margin:16px 0 10px;
+  font-size:1.8rem;
+  white-space:normal;
+}
+
+#answers,
+#extra{
+  display:grid;
+  gap:10px;
+  margin-top:16px;
+}
+
+.ans-btn{
+  width:100%;
+  background:#f6f9ff;
+  color:var(--text);
+  border:2px solid #dfe8fb;
+}
+
+.choice-box{
+  padding:18px;
+  background:var(--accent);
+  color:#fff;
+  border-radius:18px;
+  font-size:1.1rem;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.choice-box .bilingual-sub{
+  color:#f8f1df;
+}
+
+.correct{background:var(--success) !important;color:#fff !important;border-color:var(--success) !important}
+.wrong{background:var(--danger) !important;color:#fff !important;border-color:var(--danger) !important}
+
+.helper-text{
+  margin:0;
+  color:var(--muted);
+}
+
+.bilingual-main{
+  font-weight:700;
+}
+
+.bilingual-sub{
+  font-size:0.75em;
+  color:var(--muted);
+  font-weight:600;
+}
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%) translateY(20px);
+  background:#17345f;
+  color:#fff;
+  padding:14px 18px;
+  border-radius:16px;
+  box-shadow:var(--shadow);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+
+.intro-overlay{
+  position:fixed;
+  inset:0;
+  z-index:12;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:linear-gradient(180deg, rgba(55,113,255,0.34), rgba(18,36,74,0.62));
+  backdrop-filter:blur(8px);
+}
+
+.intro-overlay.hidden{
+  display:none;
+}
+
+.intro-card{
+  width:min(100%, 560px);
+  background:linear-gradient(180deg,#fff9ef,#ffffff);
+  border-radius:28px;
+  padding:24px;
+  box-shadow:0 22px 50px rgba(19,33,68,0.28);
+  border:1px solid rgba(255,255,255,0.75);
+  text-align:center;
+  position:relative;
+  overflow:hidden;
+}
+
+.intro-scene{
+  min-height:170px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  opacity:1;
+  transform:translateY(0);
+  transition:opacity 0.35s ease, transform 0.35s ease;
+}
+
+.intro-scene.fade-out{
+  opacity:0;
+  transform:translateY(10px);
+}
+
+.intro-emoji{
+  font-size:4rem;
+  line-height:1;
+  animation:introBounce 1.1s ease-in-out infinite;
+}
+
+.intro-friends{
+  position:absolute;
+  inset:12px 14px auto 14px;
+  display:flex;
+  justify-content:space-between;
+  pointer-events:none;
+}
+
+.intro-friend{
+  width:44px;
+  height:44px;
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(255,255,255,0.72);
+  box-shadow:0 8px 18px rgba(31,42,68,0.1);
+  font-size:1.4rem;
+}
+
+.intro-title{
+  margin:0;
+  font-size:1.45rem;
+}
+
+.intro-text{
+  margin:0;
+  color:var(--muted);
+  line-height:1.6;
+}
+
+.intro-dots{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  margin:14px 0 18px;
+}
+
+.intro-dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:#d6def3;
+}
+
+.intro-dot.active{
+  width:28px;
+  border-radius:999px;
+  background:linear-gradient(90deg,#ff9f43,#ff6b6b);
+}
+
+.intro-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:10px;
+}
+
+@keyframes introBounce{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-8px)}
+}
+
+@media (max-width:640px){
+  .profile-grid,
+  .stats-grid,
+  .action-row{
+    grid-template-columns:1fr;
+  }
+
+  #menu{
+    grid-template-columns:repeat(4,1fr);
+  }
+
+  .hero h1{
+    font-size:1.7rem;
+  }
+
+  #question{
+    font-size:1.45rem;
+  }
+}
+</style>
+</head>
+<body>
+<div class="cartoon-backdrop" aria-hidden="true">
+  <div class="sun"></div>
+  <div class="cloud cloud-a"></div>
+  <div class="cloud cloud-b"></div>
+  <div class="hill hill-a"></div>
+  <div class="hill hill-b"></div>
+  <div class="hill hill-c"></div>
+  <div class="flower flower-a"></div>
+  <div class="flower flower-b"></div>
+  <div class="flower flower-c"></div>
+  <div class="animal animal-bunny"><span></span><span></span></div>
+  <div class="animal animal-bear"><span></span><span></span></div>
+</div>
+<div class="container">
+  <section class="hero">
+    <h1>Math Fighter</h1>
+    <p>Classroom quest based on Cambridge Primary Mathematics Workbook Grade 1 (Petualangan kelas berbasis Cambridge Primary Mathematics Workbook Kelas 1).</p>
+  </section>
+
+  <section class="panel">
+    <div class="profile-grid">
+      <div>
+        <label for="playerName">Player name (Nama pemain)</label>
+        <input id="playerName" type="text" maxlength="20" placeholder="Contoh: Nayla">
+      </div>
+      <button id="saveProfileBtn" class="primary-btn">Save Profile</button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <span class="stat-label">Player (Pemain)</span>
+        <span id="profileName" class="stat-value">Petualang Baru</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">Unlocked stage (Stage terbuka)</span>
+        <span id="unlockedText" class="stat-value">1/30</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">Achievement (Pencapaian)</span>
+        <span id="achievementCount" class="stat-value">0/6</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">Player rank (Peringkat pemain)</span>
+        <span class="rank-display"><span id="playerRankBadge" class="rank-badge rank-rookie"></span><span id="playerRank" class="stat-value" style="margin-top:0;font-size:1rem;">Petualang Baru</span></span>
+      </div>
+    </div>
+
+    <div class="reward-grid">
+      <div class="reward-box">
+        <h3>Avatar Camp</h3>
+        <div class="avatar-preview">
+          <div id="currentAvatarToken" class="avatar-token">🐰</div>
+          <div class="avatar-meta">
+            <strong id="currentAvatarName">Bunny Scout</strong>
+            <span id="avatarUnlockHint" class="helper-text">Clear boss stages to unlock more avatars.</span>
+          </div>
+        </div>
+        <div id="avatarChoices" class="avatar-choices"></div>
+      </div>
+      <div class="reward-box">
+        <h3>Sticker Treasure</h3>
+        <p class="helper-text" style="margin-bottom:10px;">Each boss stage gives one special sticker.</p>
+        <div id="stickerShelf" class="sticker-shelf"></div>
+      </div>
+    </div>
+
+    <div class="action-row">
+      <button id="showAchievementsBtn" class="secondary-btn">View Achievements</button>
+      <button id="resetBtn" class="danger-btn">Reset Progress</button>
+    </div>
+    <div class="action-row" style="margin-top:10px;">
+      <button id="replayStoryBtn" class="secondary-btn">Play Story Again</button>
+      <div></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="menu-head">
+      <div>
+        <h2 style="margin:0;">Choose Dungeon Stage</h2>
+        <p class="helper-text">Stage order follows Grade 1 workbook flow (Urutan stage mengikuti alur workbook Grade 1). A red CLEAR stamp means completed (Cap CLEAR merah berarti sudah selesai).</p>
+      </div>
+      <strong id="bestScoreText">Best score: 0</strong>
+    </div>
+    <div id="menu"></div>
+  </section>
+
+  <section class="panel">
+    <div class="menu-head">
+      <div>
+        <h2 style="margin:0;">Leaderboard</h2>
+        <p class="helper-text">Top local scores on this device.</p>
+      </div>
+    </div>
+    <div id="leaderboardList" class="leaderboard-list"></div>
+  </section>
+
+  <section id="achievementPanel" class="panel" style="display:none;">
+    <div class="menu-head">
+      <div>
+        <h2 style="margin:0;">Achievements</h2>
+        <p class="helper-text">Unlocked automatically when goals are met (Terbuka otomatis saat target tercapai).</p>
+      </div>
+      <button id="hideAchievementsBtn" class="secondary-btn">Close</button>
+    </div>
+    <div id="achievementList" class="achievement-list"></div>
+  </section>
+
+  <section id="game" class="game-shell">
+    <div class="top-row">
+      <h3 id="levelTitle" style="margin:0;"></h3>
+      <strong id="scoreText"></strong>
+    </div>
+    <p id="stageLabel" class="helper-text"></p>
+    <p id="progress" class="helper-text"></p>
+    <div class="progress-bar">
+      <div id="progressFill" class="progress-fill"></div>
+    </div>
+    <h2 id="question"></h2>
+    <div id="answers"></div>
+    <div id="extra"></div>
+    <div class="action-row">
+      <button id="backBtn" class="secondary-btn">Back</button>
+      <button id="restartLevelBtn" class="primary-btn">Restart Stage</button>
+    </div>
+  </section>
+</div>
+
+<div id="introOverlay" class="intro-overlay">
+  <div class="intro-card">
+    <div class="intro-friends">
+      <div class="intro-friend">🐰</div>
+      <div class="intro-friend">🦊</div>
+    </div>
+    <div class="intro-scene">
+      <div id="introEmoji" class="intro-emoji">🌈</div>
+      <h2 id="introTitle" class="intro-title">Welcome to Math Safari</h2>
+      <p id="introText" class="intro-text">A happy learning journey is about to begin.</p>
+    </div>
+    <div id="introDots" class="intro-dots"></div>
+    <div class="intro-actions">
+      <button id="skipIntroBtn" class="secondary-btn">Skip</button>
+      <button id="replayIntroBtn" class="secondary-btn">Replay</button>
+      <button id="nextIntroBtn" class="primary-btn">Next</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<audio id="correctSound" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
+<audio id="wrongSound" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"></audio>
+
+<script>
+const STORAGE_KEY = "mathSafariProfile";
+const LEADERBOARD_KEY = "mathSafariLeaderboard";
+const TOTAL_LEVELS = 30;
+const QUESTIONS_PER_LEVEL = 5;
+
+const defaultProfile = () => ({
+  name: "",
+  avatar: "bunny-scout",
+  unlockedAvatars: ["bunny-scout"],
+  stickers: [],
+  unlocked: 1,
+  completedLevels: [],
+  achievements: [],
+  totalCorrect: 0,
+  totalCompleted: 0,
+  totalScore: 0,
+  bestScore: 0
+});
+
+const achievementDefinitions = [
+  { id: "first_clear", title: "Langkah Pertama", desc: "Selesaikan 1 level.", check: state => state.totalCompleted >= 1 },
+  { id: "perfect_score", title: "Bintang Lima", desc: "Dapat skor 5 di satu level.", check: state => state.bestScore >= 5 },
+  { id: "shape_finder", title: "Shape Finder", desc: "Selesaikan level bentuk.", check: state => state.completedLevels.some(level => level >= 21 && level <= 25) },
+  { id: "pattern_reader", title: "Pattern Reader", desc: "Selesaikan level pola.", check: state => state.completedLevels.some(level => level >= 26) },
+  { id: "math_runner", title: "Math Runner", desc: "Jawab 25 soal benar.", check: state => state.totalCorrect >= 25 },
+  { id: "safari_master", title: "Safari Master", desc: "Buka semua level.", check: state => state.unlocked >= TOTAL_LEVELS }
+];
+
+const rankDefinitions = [
+  { name: "New Adventurer", minCompleted: 0, iconClass: "rank-rookie" },
+  { name: "Number Explorer", minCompleted: 3, iconClass: "rank-explorer" },
+  { name: "Pattern Hunter", minCompleted: 6, iconClass: "rank-hunter" },
+  { name: "Math Expert", minCompleted: 11, iconClass: "rank-expert" },
+  { name: "Master Cambridge", minCompleted: 16, iconClass: "rank-master" },
+  { name: "Grand Master", minCompleted: 22, iconClass: "rank-grand" },
+  { name: "Legend", minCompleted: 28, iconClass: "rank-legend" }
+];
+
+const avatarDefinitions = [
+  { id: "bunny-scout", icon: "🐰", name: "Bunny Scout", unlockStage: 1 },
+  { id: "fox-knight", icon: "🦊", name: "Fox Knight", unlockStage: 5 },
+  { id: "bear-mage", icon: "🐻", name: "Bear Mage", unlockStage: 15 },
+  { id: "star-hero", icon: "🌟", name: "Star Hero", unlockStage: 25 }
+];
+
+const stickerDefinitions = [
+  { id: "boss-5", icon: "🗡️", name: "Stage 5", unlockStage: 5 },
+  { id: "boss-10", icon: "🛡️", name: "Stage 10", unlockStage: 10 },
+  { id: "boss-15", icon: "👑", name: "Stage 15", unlockStage: 15 },
+  { id: "boss-20", icon: "💎", name: "Stage 20", unlockStage: 20 },
+  { id: "boss-25", icon: "🌈", name: "Stage 25", unlockStage: 25 },
+  { id: "boss-30", icon: "🏆", name: "Stage 30", unlockStage: 30 }
+];
+
+const stageDefinitions = [
+  { title: "Number Gate 1-10", subtitle: "Unit 1 flow: counting and ordering numbers" },
+  { title: "Counting Corridor", subtitle: "Unit 1 flow: counting on" },
+  { title: "Compare Bridge", subtitle: "Unit 1 flow: comparing numbers" },
+  { title: "Addition Fortress", subtitle: "Unit 2 flow: basic addition" },
+  { title: "Quick Add Forest", subtitle: "Unit 2 flow: addition practice" },
+  { title: "Make-Ten Shrine", subtitle: "Unit 2 flow: making ten" },
+  { title: "Subtraction Cave", subtitle: "Unit 3 flow: basic subtraction" },
+  { title: "Minus Valley", subtitle: "Unit 3 flow: subtraction practice" },
+  { title: "Difference Gate", subtitle: "Unit 3 flow: difference and missing number" },
+  { title: "Tens Tower", subtitle: "Unit 4 flow: tens and ones" },
+  { title: "Ones Tower", subtitle: "Unit 4 flow: place value practice" },
+  { title: "Odd-Even Chamber", subtitle: "Unit 4 flow: odd and even" },
+  { title: "Bond Garden", subtitle: "Unit 5 flow: number bonds to 10" },
+  { title: "Bond Garden Plus", subtitle: "Unit 5 flow: flexible number bonds" },
+  { title: "Place Value Portal", subtitle: "Unit 5 flow: place value review" },
+  { title: "Half Lake", subtitle: "Unit 6 flow: halves" },
+  { title: "Quarter Lake", subtitle: "Unit 6 flow: quarters" },
+  { title: "O'Clock Trail", subtitle: "Unit 6 flow: time to the hour" },
+  { title: "Length Plains", subtitle: "Unit 7 flow: length comparison" },
+  { title: "Weight Plains", subtitle: "Unit 7 flow: mass comparison" },
+  { title: "Measure Gateway", subtitle: "Unit 7 flow: mixed measurement review" },
+  { title: "Circle Arena", subtitle: "Unit 8 flow: shape recognition" },
+  { title: "Triangle Arena", subtitle: "Unit 8 flow: shape properties" },
+  { title: "Square Arena", subtitle: "Unit 8 flow: shape attributes" },
+  { title: "3D Town", subtitle: "Unit 8 flow: real-life shape objects" },
+  { title: "Number Pattern Hall", subtitle: "Unit 9 flow: repeating patterns" },
+  { title: "Color Pattern Hall", subtitle: "Unit 9 flow: repeating color patterns" },
+  { title: "Letter Pattern Hall", subtitle: "Unit 9 flow: repeating letter patterns" },
+  { title: "Simple Data Hall", subtitle: "Unit 10 flow: simple data interpretation" },
+  { title: "Grade 1 Master Room", subtitle: "Unit 10 flow: final mixed review" }
+];
+
+const menu = document.getElementById("menu");
+const game = document.getElementById("game");
+const question = document.getElementById("question");
+const answers = document.getElementById("answers");
+const extra = document.getElementById("extra");
+const progressFill = document.getElementById("progressFill");
+const progress = document.getElementById("progress");
+const levelTitle = document.getElementById("levelTitle");
+const stageLabel = document.getElementById("stageLabel");
+const scoreText = document.getElementById("scoreText");
+const playerNameInput = document.getElementById("playerName");
+const profileName = document.getElementById("profileName");
+const unlockedText = document.getElementById("unlockedText");
+const achievementCount = document.getElementById("achievementCount");
+const playerRank = document.getElementById("playerRank");
+const playerRankBadge = document.getElementById("playerRankBadge");
+const currentAvatarToken = document.getElementById("currentAvatarToken");
+const currentAvatarName = document.getElementById("currentAvatarName");
+const avatarUnlockHint = document.getElementById("avatarUnlockHint");
+const avatarChoices = document.getElementById("avatarChoices");
+const stickerShelf = document.getElementById("stickerShelf");
+const achievementList = document.getElementById("achievementList");
+const achievementPanel = document.getElementById("achievementPanel");
+const bestScoreText = document.getElementById("bestScoreText");
+const leaderboardList = document.getElementById("leaderboardList");
+const toast = document.getElementById("toast");
+const introOverlay = document.getElementById("introOverlay");
+const introEmoji = document.getElementById("introEmoji");
+const introTitle = document.getElementById("introTitle");
+const introText = document.getElementById("introText");
+const introDots = document.getElementById("introDots");
+const introScene = document.querySelector(".intro-scene");
+const correctSound = document.getElementById("correctSound");
+const wrongSound = document.getElementById("wrongSound");
+
+const introScenes = [
+  {
+    emoji: "🌈",
+    title: "A New Learning Quest",
+    text: "In Math Safari, every child becomes a little hero who explores numbers, shapes, and patterns through fun dungeon stages."
+  },
+  {
+    emoji: "🐰",
+    title: "Meet Friendly Helpers",
+    text: "Cute friends will cheer the player on while each answer helps unlock avatars, stickers, and exciting rewards."
+  },
+  {
+    emoji: "🏆",
+    title: "Clear Stages and Grow",
+    text: "Finish each stage, earn score, collect treasure, and become a true math legend step by step."
+  }
+];
+
+function loadProfile() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    return { ...defaultProfile(), ...saved };
+  } catch (error) {
+    return defaultProfile();
+  }
+}
+
+let profile = loadProfile();
+let current = 1;
+let qIndex = 0;
+let score = 0;
+let answered = false;
+
+function saveProfile() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+}
+
+function loadLeaderboard() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LEADERBOARD_KEY));
+    return Array.isArray(saved) ? saved : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveLeaderboard(entries) {
+  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
+}
+
+function showToast(message) {
+  toast.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => toast.classList.remove("show"), 2200);
+}
+
+let introIndex = 0;
+let introTimer = null;
+
+function renderIntro() {
+  const scene = introScenes[introIndex];
+  introEmoji.textContent = scene.emoji;
+  introTitle.textContent = scene.title;
+  introText.textContent = scene.text;
+  introDots.innerHTML = introScenes.map((_, index) => `<span class="intro-dot${index === introIndex ? " active" : ""}"></span>`).join("");
+  document.getElementById("nextIntroBtn").textContent = introIndex === introScenes.length - 1 ? "Start Adventure" : "Next";
+}
+
+function stepIntro(nextIndex) {
+  introScene.classList.add("fade-out");
+  clearTimeout(stepIntro.timer);
+  stepIntro.timer = setTimeout(() => {
+    introIndex = nextIndex;
+    renderIntro();
+    introScene.classList.remove("fade-out");
+  }, 180);
+}
+
+function scheduleIntroAdvance() {
+  clearTimeout(introTimer);
+  introTimer = setTimeout(() => {
+    if (introIndex < introScenes.length - 1) {
+      stepIntro(introIndex + 1);
+      scheduleIntroAdvance();
+    }
+  }, 2600);
+}
+
+function closeIntro() {
+  clearTimeout(introTimer);
+  introOverlay.classList.add("hidden");
+  sessionStorage.setItem("mathSafariIntroSeen", "1");
+}
+
+function replayIntroStory() {
+  clearTimeout(introTimer);
+  introIndex = 0;
+  renderIntro();
+  introOverlay.classList.remove("hidden");
+  sessionStorage.removeItem("mathSafariIntroSeen");
+  scheduleIntroAdvance();
+}
+
+function generateLevels() {
+  const levels = [];
+  const usedQuestionKeys = new Set();
+
+  for (let lvl = 1; lvl <= TOTAL_LEVELS; lvl++) {
+    const questions = [];
+    for (let i = 1; i <= QUESTIONS_PER_LEVEL; i++) {
+      if (lvl >= 11 && lvl <= 30) {
+        questions.push(buildUniqueQuestion(lvl, i, usedQuestionKeys));
+      } else {
+        questions.push(buildCambridgeQuestion(lvl, i, 0));
+      }
+    }
+    levels.push({ questions });
+  }
+
+  return levels;
+}
+
+function buildUniqueQuestion(level, index, usedQuestionKeys) {
+  for (let variant = 0; variant < 16; variant++) {
+    const question = buildCambridgeQuestion(level, index, variant);
+    const key = normalizeQuestionKey(question.q);
+    if (!usedQuestionKeys.has(key)) {
+      usedQuestionKeys.add(key);
+      return question;
+    }
+  }
+
+  const fallback = buildCambridgeQuestion(level, index, 99);
+  fallback.q = fallback.q.replace('|||', ` #${level}-${index}|||`);
+  usedQuestionKeys.add(normalizeQuestionKey(fallback.q));
+  return fallback;
+}
+
+function buildCambridgeQuestion(level, index, variant = 0) {
+  if (level <= 5) {
+    return buildNumberSystemQuestion(level, index);
+  }
+  if (level <= 10) {
+    return buildAdditionSubtractionQuestion(level, index, variant);
+  }
+  if (level <= 15) {
+    return buildNumberBondPlaceValueQuestion(level, index, variant);
+  }
+  if (level <= 20) {
+    return buildFractionTimeMeasurementQuestion(level, index, variant);
+  }
+  if (level <= 25) {
+    return buildGeometryQuestion(level, index, variant);
+  }
+  return buildPatternDataQuestion(level, index, variant);
+}
+
+function bi(idText, enText) {
+  return `${enText}|||${idText}`;
+}
+
+function normalizeQuestionKey(value) {
+  return String(value).split("|||")[0].replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function seededIndex(length, level, index, variant) {
+  return (level * 17 + index * 11 + variant * 7) % length;
+}
+
+function makeSafeNumberOptions(answer, distractors = []) {
+  const extras = [...distractors, answer - 1, answer + 1, answer + 2, answer - 2]
+    .filter(value => typeof value === "number" && value >= 0 && value !== answer);
+  return makeOptions(answer, extras);
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function formatBilingual(value) {
+  if (typeof value !== "string" || !value.includes("|||")) {
+    return escapeHtml(value);
+  }
+
+  const [enText, idText] = value.split("|||");
+  if (enText.trim() === idText.trim()) {
+    return `<span class="bilingual-main">${escapeHtml(enText)}</span>`;
+  }
+  return `<span class="bilingual-main">${escapeHtml(enText)}</span> <span class="bilingual-sub">(${escapeHtml(idText)})</span>`;
+}
+
+function makeOptions(answer, distractors) {
+  const unique = [];
+  [answer, ...distractors].forEach(item => {
+    if (!unique.includes(item)) {
+      unique.push(item);
+    }
+  });
+  return unique.slice(0, 3);
+}
+
+function buildNumberSystemQuestion(level, index) {
+  if (index === 1 || index === 3) {
+    const a = level * 10 + index + 4;
+    return { q: bi(`Hitung maju. Berapa setelah ${a - 1}?`, `Count on. What comes after ${a - 1}?`), a, opt: makeOptions(a, [a + 1, a - 2]), type: "choice" };
+  }
+  if (index === 2 || index === 4) {
+    const start = 5 + level;
+    const a = start - 1;
+    return { q: bi(`Hitung mundur. Berapa sebelum ${start}?`, `Count back. What comes before ${start}?`), a, opt: makeOptions(a, [start, a - 1]), type: "choice" };
+  }
+  const bigger = 12 + level * 2;
+  const smaller = bigger - 3;
+  return { q: bi(`Mana lebih besar: ${smaller} atau ${bigger}?`, `Which is greater: ${smaller} or ${bigger}?`), a: bigger, opt: makeOptions(bigger, [smaller, smaller + 1]), type: "choice" };
+}
+
+function buildAdditionSubtractionQuestion(level, index, variant = 0) {
+  if (index <= 2) {
+    const left = 4 + level + index + (variant % 2);
+    const right = 1 + ((index + variant) % 4);
+    const answer = left + right;
+    return { q: bi(`${left} + ${right} = ?`, `${left} + ${right} = ?`), a: answer, opt: makeSafeNumberOptions(answer), type: "choice" };
+  }
+  if (index <= 4) {
+    const left = 9 + level + index + (variant % 2);
+    const right = 1 + ((index + variant) % 4);
+    const answer = left - right;
+    return { q: bi(`${left} - ${right} = ?`, `${left} - ${right} = ?`), a: answer, opt: makeSafeNumberOptions(answer), type: "choice" };
+  }
+  const total = 8 + ((level + variant) % 3);
+  const part = 2 + ((level + index + variant) % (total - 3));
+  const answer = total - part;
+  return {
+    q: bi(`Isi yang kosong: ${part} + __ = ${total}`, `Fill in the blank: ${part} + __ = ${total}`),
+    a: answer,
+    opt: makeSafeNumberOptions(answer),
+    type: "choice"
+  };
+}
+
+function buildNumberBondPlaceValueQuestion(level, index, variant = 0) {
+  const splitTemplates = [
+    () => {
+      const whole = 8 + ((level + variant) % 5);
+      const part = 2 + ((index + variant) % (whole - 3));
+      const answer = whole - part;
+      return { q: bi(`Pecah angka ${whole} menjadi ${part} dan ...`, `Split ${whole} into ${part} and ...`), a: answer, opt: makeSafeNumberOptions(answer), type: "choice" };
+    },
+    () => {
+      const whole = 9 + ((level + variant) % 4);
+      const first = 3 + ((index + variant) % 4);
+      const answer = whole - first;
+      return { q: bi(`Pasangan bilangan ke ${whole}: ${first} dan ...`, `Number bond to ${whole}: ${first} and ...`), a: answer, opt: makeSafeNumberOptions(answer), type: "choice" };
+    },
+    () => {
+      const left = 2 + ((level + variant) % 5);
+      const right = 3 + ((index + variant) % 4);
+      const answer = left + right;
+      return { q: bi(`Berapa semuanya: ${left} dan ${right}?`, `How many altogether: ${left} and ${right}?`), a: answer, opt: makeSafeNumberOptions(answer), type: "choice" };
+    },
+    () => {
+      const target = 8 + ((level + variant) % 5);
+      const have = 2 + ((index + variant) % (target - 2));
+      const answer = target - have;
+      return { q: bi(`Berapa lagi agar menjadi ${target} jika sudah punya ${have}?`, `How many more to make ${target} if you already have ${have}?`), a: answer, opt: makeSafeNumberOptions(answer), type: "choice" };
+    }
+  ];
+
+  const oddEvenTemplates = [
+    () => {
+      const answer = 6 + (((level + variant) * 2 + index) % 7) * 2;
+      return { q: bi("Mana bilangan genap?", "Which number is even?"), a: answer, opt: makeOptions(answer, [answer - 1, answer + 1]), type: "choice" };
+    },
+    () => {
+      const answer = 5 + (((level + variant) * 2 + index) % 7) * 2;
+      return { q: bi("Mana bilangan ganjil?", "Which number is odd?"), a: answer, opt: makeOptions(answer, [answer + 1, answer + 3]), type: "choice" };
+    }
+  ];
+
+  if (level === 11 || level === 13 || level === 14) {
+    return splitTemplates[seededIndex(splitTemplates.length, level, index, variant)]();
+  }
+
+  if (level === 12) {
+    if (index <= 3) {
+      return oddEvenTemplates[seededIndex(oddEvenTemplates.length, level, index, variant)]();
+    }
+    return splitTemplates[seededIndex(splitTemplates.length, level, index, variant + 3)]();
+  }
+
+  const ones = 1 + ((level + index + variant) % 9);
+  const number = 10 + ones;
+  const placeTemplates = [
+    () => ({ q: bi(`Pada angka ${number}, digit puluhan adalah ...`, `In ${number}, the tens digit is ...`), a: 1, opt: makeOptions(1, [0, ones]), type: "choice" }),
+    () => ({ q: bi(`Pada angka ${number}, digit satuan adalah ...`, `In ${number}, the ones digit is ...`), a: ones, opt: makeSafeNumberOptions(ones, [0, 1]), type: "choice" }),
+    () => ({ q: bi(`Bilangan mana yang menunjukkan 1 puluhan dan ${ones} satuan?`, `Which number shows 1 ten and ${ones} ones?`), a: number, opt: makeSafeNumberOptions(number, [10 + ((ones + 1) % 10), ones]), type: "choice" }),
+    () => ({ q: bi(`Lengkapi: 10 + ${ones} = ...`, `Complete: 10 + ${ones} = ...`), a: number, opt: makeSafeNumberOptions(number, [10 + Math.max(0, ones - 1)]), type: "choice" }),
+    () => ({ q: bi(`Mana bilangan genap?`, `Which number is even?`), a: 10 + ((variant + index) % 5) * 2, opt: makeOptions(10 + ((variant + index) % 5) * 2, [11 + ((variant + index) % 5) * 2, 13 + ((variant + index) % 4) * 2]), type: "choice" })
+  ];
+
+  return placeTemplates[index - 1]();
+}
+
+function buildFractionTimeMeasurementQuestion(level, index, variant = 0) {
+  if (level === 16) {
+    const values = [6, 8, 10, 12, 14];
+    const total = values[(index + variant) % values.length];
+    const answer = total / 2;
+    return { q: bi(`Setengah dari ${total} adalah ...`, `Half of ${total} is ...`), a: answer, opt: makeSafeNumberOptions(answer), type: "choice" };
+  }
+
+  if (level === 17) {
+    const values = [8, 12, 16, 8, 12];
+    const total = values[(index + variant) % values.length];
+    const answer = total / 4;
+    return { q: bi(`Seperempat dari ${total} adalah ...`, `One quarter of ${total} is ...`), a: answer, opt: makeSafeNumberOptions(answer), type: "choice" };
+  }
+
+  if (level === 18) {
+    const hour = 1 + ((index + level + variant) % 8);
+    const label = `${String(hour).padStart(2, "0")}:00`;
+    return { q: bi(`Pukul ${hour} tepat ditulis ...`, `${hour} o'clock is written as ...`), a: label, opt: makeOptions(label, [`${String(hour).padStart(2, "0")}:30`, `${String((hour % 9) + 1).padStart(2, "0")}:00`]), type: "choice" };
+  }
+
+  if (level === 19) {
+    const lengthTemplates = [
+      { q: bi("Mana yang lebih panjang?", "Which is longer?"), a: bi("Penggaris 30 cm", "30 cm ruler"), opt: [bi("Pensil 10 cm", "10 cm pencil"), bi("Klip 3 cm", "3 cm paper clip")] },
+      { q: bi("Mana yang lebih pendek?", "Which is shorter?"), a: bi("Penghapus 4 cm", "4 cm eraser"), opt: [bi("Pita 20 cm", "20 cm ribbon"), bi("Tali 15 cm", "15 cm rope")] },
+      { q: bi("Mana yang lebih panjang?", "Which is longer?"), a: bi("Tongkat 25 cm", "25 cm stick"), opt: [bi("Krayon 8 cm", "8 cm crayon"), bi("Sendok 12 cm", "12 cm spoon")] },
+      { q: bi("Mana yang lebih pendek?", "Which is shorter?"), a: bi("Klip 2 cm", "2 cm paper clip"), opt: [bi("Pensil 12 cm", "12 cm pencil"), bi("Sedotan 14 cm", "14 cm straw")] },
+      { q: bi("Mana yang lebih panjang?", "Which is longer?"), a: bi("Pita 18 cm", "18 cm ribbon"), opt: [bi("Penghapus 5 cm", "5 cm eraser"), bi("Koin 3 cm", "3 cm coin")] }
+    ];
+    const item = lengthTemplates[(index + variant) % lengthTemplates.length];
+    return { q: item.q, a: item.a, opt: makeOptions(item.a, item.opt), type: "choice" };
+  }
+
+  const weightTemplates = [
+    { q: bi("Mana yang lebih berat?", "Which is heavier?"), a: bi("Semangka", "Watermelon"), opt: [bi("Bulu", "Feather"), bi("Daun", "Leaf")] },
+    { q: bi("Mana yang lebih ringan?", "Which is lighter?"), a: bi("Bulu", "Feather"), opt: [bi("Buku", "Book"), bi("Tas", "Bag")] },
+    { q: bi("Mana yang lebih berat?", "Which is heavier?"), a: bi("Kursi", "Chair"), opt: [bi("Bola", "Ball"), bi("Topi", "Hat")] },
+    { q: bi("Mana yang lebih ringan?", "Which is lighter?"), a: bi("Daun", "Leaf"), opt: [bi("Botol", "Bottle"), bi("Meja", "Table")] },
+    { q: bi("Mana yang lebih berat?", "Which is heavier?"), a: bi("Sepatu", "Shoe"), opt: [bi("Bulu", "Feather"), bi("Kertas", "Paper")] }
+  ];
+  const item = weightTemplates[(index + variant) % weightTemplates.length];
+  return { q: item.q, a: item.a, opt: makeOptions(item.a, item.opt), type: "choice" };
+}
+
+function buildGeometryQuestion(level, index, variant = 0) {
+  const circle = bi("Lingkaran", "Circle");
+  const triangle = bi("Segitiga", "Triangle");
+  const square = bi("Persegi", "Square");
+  const rectangle = bi("Persegi Panjang", "Rectangle");
+  const ball = bi("Bola", "Ball");
+  const dice = bi("Dadu", "Dice");
+  const cone = bi("Es krim cone", "Ice cream cone");
+  const can = bi("Kaleng", "Can");
+
+  const stageQuestions = {
+    21: [
+      { q: bi("Ketuk lingkaran.", "Tap the circle."), a: circle, opt: [circle, triangle, square], type: "tap" },
+      { q: bi("Pilih bangun yang bulat.", "Choose the round shape."), a: circle, opt: makeOptions(circle, [triangle, rectangle]), type: "choice" },
+      { q: bi("Bangun yang tidak punya sudut adalah ...", "The shape with no corners is ..."), a: circle, opt: makeOptions(circle, [square, triangle]), type: "choice" },
+      { q: bi("Benda yang mirip lingkaran adalah ...", "The object that looks like a circle is ..."), a: bi("Piring", "Plate"), opt: makeOptions(bi("Piring", "Plate"), [bi("Buku", "Book"), bi("Pensil", "Pencil")]), type: "choice" },
+      { q: bi("Pilih lingkaran.", "Choose the circle."), a: circle, opt: makeOptions(circle, [rectangle, triangle]), type: "choice" }
+    ],
+    22: [
+      { q: bi("Ketuk segitiga.", "Tap the triangle."), a: triangle, opt: [triangle, circle, square], type: "tap" },
+      { q: bi("Bangun yang punya 3 sisi adalah ...", "The shape with 3 sides is ..."), a: triangle, opt: makeOptions(triangle, [square, circle]), type: "choice" },
+      { q: bi("Bangun yang punya 3 sudut adalah ...", "The shape with 3 corners is ..."), a: triangle, opt: makeOptions(triangle, [rectangle, circle]), type: "choice" },
+      { q: bi("Potongan pizza mirip ...", "A pizza slice looks like a ..."), a: triangle, opt: makeOptions(triangle, [circle, square]), type: "choice" },
+      { q: bi("Pilih segitiga.", "Choose the triangle."), a: triangle, opt: makeOptions(triangle, [square, rectangle]), type: "choice" }
+    ],
+    23: [
+      { q: bi("Ketuk persegi.", "Tap the square."), a: square, opt: [square, rectangle, triangle], type: "tap" },
+      { q: bi("Bangun yang punya 4 sisi sama panjang adalah ...", "The shape with 4 equal sides is ..."), a: square, opt: makeOptions(square, [triangle, rectangle]), type: "choice" },
+      { q: bi("Pilih persegi panjang.", "Choose the rectangle."), a: rectangle, opt: makeOptions(rectangle, [square, triangle]), type: "choice" },
+      { q: bi("Jendela mirip ...", "A window looks like a ..."), a: rectangle, opt: makeOptions(rectangle, [circle, triangle]), type: "choice" },
+      { q: bi("Bangun yang punya 4 sisi adalah ...", "The shape with 4 sides is ..."), a: rectangle, opt: makeOptions(rectangle, [triangle, circle]), type: "choice" }
+    ],
+    24: [
+      { q: bi("Benda berbentuk bola adalah ...", "The object shaped like a sphere is ..."), a: ball, opt: makeOptions(ball, [dice, bi("Buku", "Book")]), type: "choice" },
+      { q: bi("Benda berbentuk kubus adalah ...", "The object shaped like a cube is ..."), a: dice, opt: makeOptions(dice, [ball, can]), type: "choice" },
+      { q: bi("Es krim cone berbentuk ...", "An ice cream cone is shaped like a ..."), a: cone, opt: makeOptions(cone, [ball, dice]), type: "choice" },
+      { q: bi("Kaleng minuman berbentuk ...", "A drink can is shaped like a ..."), a: can, opt: makeOptions(can, [ball, cone]), type: "choice" },
+      { q: bi("Benda 3D yang bisa menggelinding adalah ...", "The 3D object that can roll is ..."), a: ball, opt: makeOptions(ball, [dice, bi("Kotak", "Box")]), type: "choice" }
+    ],
+    25: [
+      { q: bi("Bangun mana yang tidak punya sisi lurus?", "Which shape has no straight sides?"), a: circle, opt: makeOptions(circle, [square, triangle]), type: "choice" },
+      { q: bi("Bangun mana yang punya 3 sisi?", "Which shape has 3 sides?"), a: triangle, opt: makeOptions(triangle, [square, circle]), type: "choice" },
+      { q: bi("Bangun mana yang punya 4 sisi sama panjang?", "Which shape has 4 equal sides?"), a: square, opt: makeOptions(square, [rectangle, triangle]), type: "choice" },
+      { q: bi("Ketuk persegi panjang.", "Tap the rectangle."), a: rectangle, opt: [rectangle, circle, square], type: "tap" },
+      { q: bi("Manakah yang termasuk bangun 3D?", "Which one is a 3D shape?"), a: ball, opt: makeOptions(ball, [square, triangle]), type: "choice" }
+    ]
+  };
+
+  return stageQuestions[level][(index - 1 + variant) % stageQuestions[level].length];
+}
+
+function buildPatternDataQuestion(level, index, variant = 0) {
+  const stageQuestions = {
+    26: [
+      { q: bi("Pola: 1, 2, 1, 2, ...", "Pattern: 1, 2, 1, 2, ..."), a: "1", opt: makeOptions("1", ["2", "3"]), type: "choice" },
+      { q: bi("Pola: 3, 4, 3, 4, ...", "Pattern: 3, 4, 3, 4, ..."), a: "3", opt: makeOptions("3", ["4", "5"]), type: "choice" },
+      { q: bi("Pola: 5, 6, 5, 6, ...", "Pattern: 5, 6, 5, 6, ..."), a: "5", opt: makeOptions("5", ["6", "7"]), type: "choice" },
+      { q: bi("Pola: 7, 8, 7, 8, ...", "Pattern: 7, 8, 7, 8, ..."), a: "7", opt: makeOptions("7", ["8", "9"]), type: "choice" },
+      { q: bi("Pola: 2, 2, 3, 2, 2, 3, ...", "Pattern: 2, 2, 3, 2, 2, 3, ..."), a: "2", opt: makeOptions("2", ["3", "4"]), type: "choice" }
+    ],
+    27: [
+      { q: bi("Pola warna: Merah, Biru, Merah, ...", "Color pattern: Red, Blue, Red, ..."), a: bi("Biru", "Blue"), opt: makeOptions(bi("Biru", "Blue"), [bi("Merah", "Red"), bi("Hijau", "Green")]), type: "choice" },
+      { q: bi("Pola warna: Kuning, Hijau, Kuning, ...", "Color pattern: Yellow, Green, Yellow, ..."), a: bi("Hijau", "Green"), opt: makeOptions(bi("Hijau", "Green"), [bi("Kuning", "Yellow"), bi("Biru", "Blue")]), type: "choice" },
+      { q: bi("Pola warna: Ungu, Oranye, Ungu, ...", "Color pattern: Purple, Orange, Purple, ..."), a: bi("Oranye", "Orange"), opt: makeOptions(bi("Oranye", "Orange"), [bi("Ungu", "Purple"), bi("Merah", "Red")]), type: "choice" },
+      { q: bi("Pola warna: Biru, Biru, Kuning, Biru, Biru, ...", "Color pattern: Blue, Blue, Yellow, Blue, Blue, ..."), a: bi("Kuning", "Yellow"), opt: makeOptions(bi("Kuning", "Yellow"), [bi("Biru", "Blue"), bi("Hijau", "Green")]), type: "choice" },
+      { q: bi("Pola warna: Merah, Merah, Hijau, Merah, Merah, ...", "Color pattern: Red, Red, Green, Red, Red, ..."), a: bi("Hijau", "Green"), opt: makeOptions(bi("Hijau", "Green"), [bi("Merah", "Red"), bi("Kuning", "Yellow")]), type: "choice" }
+    ],
+    28: [
+      { q: bi("Pola huruf: A, B, A, B, ...", "Letter pattern: A, B, A, B, ..."), a: "A", opt: makeOptions("A", ["B", "C"]), type: "choice" },
+      { q: bi("Pola huruf: C, D, C, D, ...", "Letter pattern: C, D, C, D, ..."), a: "C", opt: makeOptions("C", ["D", "E"]), type: "choice" },
+      { q: bi("Pola huruf: E, F, E, F, ...", "Letter pattern: E, F, E, F, ..."), a: "E", opt: makeOptions("E", ["F", "G"]), type: "choice" },
+      { q: bi("Pola huruf: G, H, G, H, ...", "Letter pattern: G, H, G, H, ..."), a: "G", opt: makeOptions("G", ["H", "I"]), type: "choice" },
+      { q: bi("Pola huruf: J, K, J, K, ...", "Letter pattern: J, K, J, K, ..."), a: "J", opt: makeOptions("J", ["K", "L"]), type: "choice" }
+    ],
+    29: [
+      { q: bi("Data buah: Apel, Apel, Pisang. Buah terbanyak adalah ...", "Fruit data: Apple, Apple, Banana. The most is ..."), a: bi("Apel", "Apple"), opt: makeOptions(bi("Apel", "Apple"), [bi("Pisang", "Banana"), bi("Sama banyak", "Equal")]), type: "choice" },
+      { q: bi("Data hewan: Kucing, Anjing, Kucing. Hewan terbanyak adalah ...", "Animal data: Cat, Dog, Cat. The most is ..."), a: bi("Kucing", "Cat"), opt: makeOptions(bi("Kucing", "Cat"), [bi("Anjing", "Dog"), bi("Sama banyak", "Equal")]), type: "choice" },
+      { q: bi("Data warna: Merah, Biru, Merah. Warna terbanyak adalah ...", "Color data: Red, Blue, Red. The most is ..."), a: bi("Merah", "Red"), opt: makeOptions(bi("Merah", "Red"), [bi("Biru", "Blue"), bi("Sama banyak", "Equal")]), type: "choice" },
+      { q: bi("Data bentuk: Lingkaran, Kotak, Lingkaran. Bentuk terbanyak adalah ...", "Shape data: Circle, Square, Circle. The most is ..."), a: bi("Lingkaran", "Circle"), opt: makeOptions(bi("Lingkaran", "Circle"), [bi("Kotak", "Square"), bi("Sama banyak", "Equal")]), type: "choice" },
+      { q: bi("Data mainan: Boneka, Bola, Boneka. Mainan terbanyak adalah ...", "Toy data: Doll, Ball, Doll. The most is ..."), a: bi("Boneka", "Doll"), opt: makeOptions(bi("Boneka", "Doll"), [bi("Bola", "Ball"), bi("Sama banyak", "Equal")]), type: "choice" }
+    ],
+    30: [
+      { q: bi("Pola bentuk: Lingkaran, Kotak, Lingkaran, Kotak, ...", "Shape pattern: Circle, Square, Circle, Square, ..."), a: bi("Lingkaran", "Circle"), opt: makeOptions(bi("Lingkaran", "Circle"), [bi("Kotak", "Square"), bi("Segitiga", "Triangle")]), type: "choice" },
+      { q: bi("Pola warna: Biru, Kuning, Biru, Kuning, ...", "Color pattern: Blue, Yellow, Blue, Yellow, ..."), a: bi("Biru", "Blue"), opt: makeOptions(bi("Biru", "Blue"), [bi("Kuning", "Yellow"), bi("Hijau", "Green")]), type: "choice" },
+      { q: bi("Data buah: Jeruk, Jeruk, Apel. Buah terbanyak adalah ...", "Fruit data: Orange, Orange, Apple. The most is ..."), a: bi("Jeruk", "Orange"), opt: makeOptions(bi("Jeruk", "Orange"), [bi("Apel", "Apple"), bi("Sama banyak", "Equal")]), type: "choice" },
+      { q: bi("Pola angka: 4, 5, 4, 5, ...", "Number pattern: 4, 5, 4, 5, ..."), a: "4", opt: makeOptions("4", ["5", "6"]), type: "choice" },
+      { q: bi("Pola huruf: M, N, M, N, ...", "Letter pattern: M, N, M, N, ..."), a: "M", opt: makeOptions("M", ["N", "O"]), type: "choice" }
+    ]
+  };
+
+  return stageQuestions[level][(index - 1 + variant) % stageQuestions[level].length];
+}
+
+const levels = generateLevels();
+
+function shuffle(list) {
+  return [...list].sort(() => Math.random() - 0.5);
+}
+
+function renderProfile() {
+  const displayName = profile.name.trim() || "Petualang Baru";
+  const rank = getPlayerRank(profile.totalCompleted);
+  const avatar = getAvatarDefinition(profile.avatar);
+  playerNameInput.value = profile.name;
+  profileName.textContent = displayName;
+  unlockedText.textContent = `${profile.unlocked}/${TOTAL_LEVELS}`;
+  achievementCount.textContent = `${profile.achievements.length}/${achievementDefinitions.length}`;
+  playerRank.textContent = rank.name;
+  playerRankBadge.className = `rank-badge ${rank.iconClass}`;
+  bestScoreText.textContent = `Total score: ${profile.totalScore}`;
+  currentAvatarToken.textContent = avatar.icon;
+  currentAvatarName.textContent = avatar.name;
+  avatarUnlockHint.textContent = `Unlocked avatars: ${profile.unlockedAvatars.length}/${avatarDefinitions.length}`;
+}
+
+function getPlayerRank(completedLevels) {
+  let currentRank = rankDefinitions[0];
+  rankDefinitions.forEach(rank => {
+    if (completedLevels >= rank.minCompleted) {
+      currentRank = rank;
+    }
+  });
+  return currentRank;
+}
+
+function getAvatarDefinition(avatarId) {
+  return avatarDefinitions.find(item => item.id === avatarId) || avatarDefinitions[0];
+}
+
+function renderAvatarChoices() {
+  avatarChoices.innerHTML = "";
+
+  avatarDefinitions.forEach(avatar => {
+    const unlocked = profile.unlockedAvatars.includes(avatar.id);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `avatar-card${profile.avatar === avatar.id ? " active" : ""}${unlocked ? "" : " locked"}`;
+    button.disabled = !unlocked;
+    button.innerHTML = `
+      <span class="avatar-icon">${avatar.icon}</span>
+      <strong>${avatar.name}</strong>
+      <small>${unlocked ? "Ready" : `Unlock Stage ${avatar.unlockStage}`}</small>
+    `;
+    if (unlocked) {
+      button.onclick = () => {
+        profile.avatar = avatar.id;
+        updateDashboard();
+        showToast(`${avatar.name} selected`);
+      };
+    }
+    avatarChoices.appendChild(button);
+  });
+}
+
+function renderStickerShelf() {
+  stickerShelf.innerHTML = "";
+
+  stickerDefinitions.forEach(sticker => {
+    const unlocked = profile.stickers.includes(sticker.id);
+    const card = document.createElement("div");
+    card.className = `sticker-card${unlocked ? "" : " locked"}`;
+    card.innerHTML = `
+      <span class="sticker-icon">${unlocked ? sticker.icon : "🔒"}</span>
+      <strong>${sticker.name}</strong>
+      <small>${unlocked ? "Collected" : `Boss ${sticker.unlockStage}`}</small>
+    `;
+    stickerShelf.appendChild(card);
+  });
+}
+
+function renderLeaderboard() {
+  const entries = loadLeaderboard()
+    .sort((a, b) => b.score - a.score || b.completed - a.completed)
+    .slice(0, 5);
+
+  if (!entries.length) {
+    leaderboardList.innerHTML = `<div class="leaderboard-item"><span class="helper-text">No scores yet. Finish a stage to appear here.</span></div>`;
+    return;
+  }
+
+  leaderboardList.innerHTML = entries.map((entry, index) => `
+    <div class="leaderboard-item">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="leaderboard-rank">${index + 1}</span>
+        <div>
+          <strong>${escapeHtml(entry.name)}</strong>
+          <div class="helper-text">${entry.completed} cleared stages</div>
+        </div>
+      </div>
+      <strong>${entry.score}</strong>
+    </div>
+  `).join("");
+}
+
+function getStageInfo(level) {
+  return stageDefinitions[level - 1] || { title: "Stage Misterius", subtitle: "Workbook path" };
+}
+
+function getStageFlowId(level) {
+  if (level <= 3) {
+    return "Unit 1: hitung dan urutkan bilangan";
+  }
+  if (level <= 6) {
+    return "Unit 2: penjumlahan dasar";
+  }
+  if (level <= 9) {
+    return "Unit 3: pengurangan dasar";
+  }
+  if (level <= 12) {
+    return "Unit 4: puluhan dan satuan";
+  }
+  if (level <= 15) {
+    return "Unit 5: number bonds dan nilai tempat";
+  }
+  if (level <= 18) {
+    return "Unit 6: pecahan dan jam";
+  }
+  if (level <= 21) {
+    return "Unit 7: panjang dan berat";
+  }
+  if (level <= 25) {
+    return "Unit 8: bangun datar dan bentuk benda";
+  }
+  if (level <= 28) {
+    return "Unit 9: pola berulang";
+  }
+  return "Unit 10: data sederhana dan review";
+}
+
+function renderAchievements() {
+  achievementList.innerHTML = "";
+
+  achievementDefinitions.forEach(item => {
+    const unlocked = profile.achievements.includes(item.id);
+    const row = document.createElement("div");
+    row.className = `achievement-item${unlocked ? " unlocked" : ""}`;
+    row.innerHTML = `
+      <div>
+        <strong>${item.title}</strong>
+        <p class="helper-text" style="margin-top:4px;">${item.desc}</p>
+      </div>
+      <span class="badge">${unlocked ? "Unlocked" : "Locked"}</span>
+    `;
+    achievementList.appendChild(row);
+  });
+}
+
+function renderMenu() {
+  menu.innerHTML = "";
+
+  for (let i = 1; i <= TOTAL_LEVELS; i++) {
+    const button = document.createElement("button");
+    const stage = getStageInfo(i);
+    button.innerText = `S${i}`;
+    button.title = `Dungeon Stage ${i}: ${stage.title}`;
+    button.className = "level-btn";
+    if (i % 5 === 0) {
+      button.classList.add("boss-stage");
+    }
+    if (profile.completedLevels.includes(i)) {
+      button.classList.add("level-complete");
+    }
+    if (i > profile.unlocked) {
+      button.disabled = true;
+    }
+    button.onclick = () => start(i);
+    menu.appendChild(button);
+  }
+}
+
+function evaluateAchievements() {
+  const newUnlocks = [];
+
+  achievementDefinitions.forEach(item => {
+    if (!profile.achievements.includes(item.id) && item.check(profile)) {
+      profile.achievements.push(item.id);
+      newUnlocks.push(item.title);
+    }
+  });
+
+  if (newUnlocks.length) {
+    showToast(`New achievement unlocked (${newUnlocks.join(", ")})`);
+  }
+}
+
+function updateDashboard() {
+  evaluateAchievements();
+  saveProfile();
+  renderProfile();
+  renderAvatarChoices();
+  renderStickerShelf();
+  renderLeaderboard();
+  renderAchievements();
+  renderMenu();
+}
+
+function updateLeaderboard() {
+  const displayName = (profile.name.trim() || "New Adventurer").slice(0, 20);
+  const entries = loadLeaderboard();
+  const existing = entries.find(item => item.name === displayName);
+
+  if (existing) {
+    existing.score = Math.max(existing.score, profile.totalScore);
+    existing.completed = Math.max(existing.completed, profile.totalCompleted);
+  } else {
+    entries.push({
+      name: displayName,
+      score: profile.totalScore,
+      completed: profile.totalCompleted
+    });
+  }
+
+  saveLeaderboard(entries);
+}
+
+function grantBossRewards(level) {
+  const newRewards = [];
+
+  const sticker = stickerDefinitions.find(item => item.unlockStage === level);
+  if (sticker && !profile.stickers.includes(sticker.id)) {
+    profile.stickers.push(sticker.id);
+    newRewards.push(`Sticker ${sticker.icon} ${sticker.name}`);
+  }
+
+  avatarDefinitions.forEach(avatar => {
+    if (avatar.unlockStage === level && !profile.unlockedAvatars.includes(avatar.id)) {
+      profile.unlockedAvatars.push(avatar.id);
+      newRewards.push(`Avatar ${avatar.icon} ${avatar.name}`);
+    }
+  });
+
+  return newRewards;
+}
+
+function savePlayerName() {
+  profile.name = playerNameInput.value.trim();
+  updateDashboard();
+  showToast("Profile saved (Profil tersimpan).");
+}
+
+function start(level) {
+  current = level;
+  qIndex = 0;
+  score = 0;
+  answered = false;
+  document.querySelectorAll(".panel").forEach(section => {
+    if (section !== achievementPanel) {
+      section.style.display = "none";
+    }
+  });
+  achievementPanel.style.display = "none";
+  game.style.display = "block";
+  showQuestion();
+}
+
+function showQuestion() {
+  answered = false;
+  const data = levels[current - 1].questions[qIndex];
+  const stage = getStageInfo(current);
+  const bossLabel = current % 5 === 0 ? "Boss Stage" : "Dungeon Stage";
+  const flowLabel = current % 5 === 0
+    ? `${stage.subtitle} | Boss challenge reward stage`
+    : stage.subtitle;
+
+  levelTitle.textContent = `${bossLabel} ${current}: ${stage.title}`;
+  stageLabel.innerHTML = formatBilingual(bi(`Alur unit workbook: ${getStageFlowId(current)}${current % 5 === 0 ? " | stage boss berhadiah" : ""}`, `Workbook unit flow: ${flowLabel}`));
+  question.innerHTML = formatBilingual(data.q);
+  progress.innerHTML = formatBilingual(bi(`Soal ${qIndex + 1} dari ${QUESTIONS_PER_LEVEL}`, `Question ${qIndex + 1} of ${QUESTIONS_PER_LEVEL}`));
+  scoreText.textContent = `Stage score: ${score}`;
+  progressFill.style.width = `${(qIndex / QUESTIONS_PER_LEVEL) * 100}%`;
+
+  answers.innerHTML = "";
+  extra.innerHTML = "";
+
+  const optionList = shuffle(data.opt);
+  optionList.forEach(option => {
+    const element = data.type === "tap" ? document.createElement("div") : document.createElement("button");
+    if (data.type === "tap") {
+      element.className = "choice-box";
+      element.innerHTML = formatBilingual(option);
+      element.onclick = () => checkAnswer(element, option, data.a);
+      extra.appendChild(element);
+    } else {
+      element.className = "ans-btn";
+      element.innerHTML = formatBilingual(option);
+      element.onclick = () => checkAnswer(element, option, data.a);
+      answers.appendChild(element);
+    }
+  });
+}
+
+function markButtonsDisabled() {
+  [...answers.children, ...extra.children].forEach(item => {
+    item.style.pointerEvents = "none";
+    item.disabled = true;
+  });
+}
+
+function checkAnswer(element, selected, answer) {
+  if (answered) {
+    return;
+  }
+
+  if (selected === answer) {
+    answered = true;
+    score++;
+    if (!profile.completedLevels.includes(current)) {
+      profile.totalCorrect++;
+    }
+    element.classList.add("correct");
+    correctSound.currentTime = 0;
+    correctSound.play();
+    markButtonsDisabled();
+    setTimeout(nextQuestion, 500);
+  } else {
+    score = Math.max(0, score - 1);
+    element.classList.add("wrong");
+    wrongSound.currentTime = 0;
+    wrongSound.play();
+    element.style.pointerEvents = "none";
+    element.disabled = true;
+  }
+
+  scoreText.textContent = `Stage score: ${score}`;
+}
+
+function nextQuestion() {
+  qIndex++;
+
+  if (qIndex >= QUESTIONS_PER_LEVEL) {
+    finishLevel();
+    return;
+  }
+
+  showQuestion();
+}
+
+function finishLevel() {
+  const firstCompletion = !profile.completedLevels.includes(current);
+  const stage = getStageInfo(current);
+  let newRewards = [];
+
+  if (firstCompletion) {
+    profile.completedLevels.push(current);
+    profile.totalCompleted++;
+    profile.totalScore += score;
+    if (current % 5 === 0) {
+      newRewards = grantBossRewards(current);
+    }
+  }
+
+  if (firstCompletion && current === profile.unlocked && profile.unlocked < TOTAL_LEVELS) {
+    profile.unlocked++;
+  }
+
+  profile.bestScore = Math.max(profile.bestScore, profile.totalScore);
+  updateLeaderboard();
+  updateDashboard();
+  const rewardText = newRewards.length ? `\nRewards: ${newRewards.join(", ")}` : "";
+  alert(`${current % 5 === 0 ? "Boss Stage" : "Dungeon Stage"} ${current} - ${stage.title} completed!\nStage score: ${score}/${QUESTIONS_PER_LEVEL}\nTotal score: ${profile.totalScore}${firstCompletion ? rewardText : "\nStage ini sudah pernah selesai, jadi total score tidak bertambah."}`);
+  backToMenu();
+}
+
+function backToMenu() {
+  game.style.display = "none";
+  document.querySelectorAll(".panel").forEach(section => {
+    section.style.display = "block";
+  });
+  achievementPanel.style.display = "none";
+}
+
+function resetProgress() {
+  const confirmed = confirm("Reset all progress, profile, and achievements? (Reset semua progress, profil, dan achievement?)");
+  if (!confirmed) {
+    return;
+  }
+
+  profile = defaultProfile();
+  saveProfile();
+  backToMenu();
+  updateDashboard();
+  showToast("Progress reset complete (Progress berhasil di-reset).");
+}
+
+document.getElementById("saveProfileBtn").onclick = savePlayerName;
+document.getElementById("showAchievementsBtn").onclick = () => {
+  achievementPanel.style.display = "block";
+  achievementPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+document.getElementById("skipIntroBtn").onclick = closeIntro;
+document.getElementById("replayIntroBtn").onclick = replayIntroStory;
+document.getElementById("replayStoryBtn").onclick = replayIntroStory;
+document.getElementById("nextIntroBtn").onclick = () => {
+  if (introIndex < introScenes.length - 1) {
+    stepIntro(introIndex + 1);
+    scheduleIntroAdvance();
+    return;
+  }
+  closeIntro();
+};
+document.getElementById("hideAchievementsBtn").onclick = () => {
+  achievementPanel.style.display = "none";
+};
+document.getElementById("resetBtn").onclick = resetProgress;
+document.getElementById("backBtn").onclick = backToMenu;
+document.getElementById("restartLevelBtn").onclick = () => start(current);
+playerNameInput.addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    savePlayerName();
+  }
+});
+
+updateDashboard();
+renderIntro();
+if (sessionStorage.getItem("mathSafariIntroSeen") === "1") {
+  introOverlay.classList.add("hidden");
+} else {
+  scheduleIntroAdvance();
+}
+</script>
+</body>
+</html>
