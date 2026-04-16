@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -854,10 +854,11 @@ button:disabled{cursor:not-allowed;opacity:0.6;transform:none}
     <div class="menu-head">
       <div>
         <h2 style="margin:0;">Leaderboard</h2>
-        <p class="helper-text">Top local scores on this device.</p>
+        <p id="leaderboardStatus" class="helper-text">Checking online leaderboard...</p>
       </div>
     </div>
     <div id="leaderboardList" class="leaderboard-list"></div>
+    <p id="leaderboardHint" class="helper-text" style="margin-top:10px;"></p>
   </section>
 
   <section id="achievementPanel" class="panel" style="display:none;">
@@ -916,11 +917,22 @@ button:disabled{cursor:not-allowed;opacity:0.6;transform:none}
 <audio id="correctSound" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
 <audio id="wrongSound" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"></audio>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script>
 const STORAGE_KEY = "mathSafariProfile";
 const LEADERBOARD_KEY = "mathSafariLeaderboard";
 const TOTAL_LEVELS = 30;
 const QUESTIONS_PER_LEVEL = 5;
+const firebaseConfig = {
+  apiKey: "AIzaSyBdvIEUneduAI5JKV2hY6Uu9XNq7wiHWvk",
+  authDomain: "math-fighter-37523.firebaseapp.com",
+  projectId: "math-fighter-37523",
+  storageBucket: "math-fighter-37523.firebasestorage.app",
+  messagingSenderId: "997429099167",
+  appId: "1:997429099167:web:07c85ac14de539170340aa",
+  measurementId: "G-W4ZRYF87SM"
+};
 
 const defaultProfile = () => ({
   name: "",
@@ -1029,6 +1041,8 @@ const achievementList = document.getElementById("achievementList");
 const achievementPanel = document.getElementById("achievementPanel");
 const bestScoreText = document.getElementById("bestScoreText");
 const leaderboardList = document.getElementById("leaderboardList");
+const leaderboardStatus = document.getElementById("leaderboardStatus");
+const leaderboardHint = document.getElementById("leaderboardHint");
 const toast = document.getElementById("toast");
 const introOverlay = document.getElementById("introOverlay");
 const introEmoji = document.getElementById("introEmoji");
@@ -1071,6 +1085,11 @@ let current = 1;
 let qIndex = 0;
 let score = 0;
 let answered = false;
+let firestoreDb = null;
+let onlineLeaderboardCache = [];
+let onlineLeaderboardReady = false;
+let leaderboardMode = "checking";
+let leaderboardLastError = "";
 
 function saveProfile() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
@@ -1087,6 +1106,84 @@ function loadLeaderboard() {
 
 function saveLeaderboard(entries) {
   localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
+}
+
+function initOnlineLeaderboard() {
+  try {
+    if (!window.firebase) {
+      leaderboardMode = "local";
+      leaderboardLastError = "Firebase SDK not found";
+      return;
+    }
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    firestoreDb = firebase.firestore();
+    onlineLeaderboardReady = true;
+    leaderboardMode = "checking";
+    leaderboardLastError = "";
+  } catch (error) {
+    console.error("Firebase init failed:", error);
+    onlineLeaderboardReady = false;
+    leaderboardMode = "local";
+    leaderboardLastError = error?.message || "Firebase init failed";
+  }
+}
+
+async function fetchOnlineLeaderboard() {
+  if (!onlineLeaderboardReady || !firestoreDb) {
+    leaderboardMode = "local";
+    return [];
+  }
+
+  try {
+    const snapshot = await firestoreDb
+      .collection("leaderboard")
+      .orderBy("score", "desc")
+      .limit(10)
+      .get();
+
+    onlineLeaderboardCache = snapshot.docs.map(doc => ({
+      name: doc.data().name || "Player",
+      score: Number(doc.data().score || 0),
+      completed: Number(doc.data().completed || 0)
+    })).sort((a, b) => b.score - a.score || b.completed - a.completed);
+    leaderboardMode = "online";
+    leaderboardLastError = "";
+    return onlineLeaderboardCache;
+  } catch (error) {
+    console.error("Fetch online leaderboard failed:", error);
+    leaderboardMode = "local";
+    leaderboardLastError = error?.message || "Firestore fetch failed";
+    return [];
+  }
+}
+
+async function submitOnlineLeaderboard() {
+  if (!onlineLeaderboardReady || !firestoreDb) {
+    leaderboardMode = "local";
+    return;
+  }
+
+  const displayName = (profile.name.trim() || "New Adventurer").slice(0, 20);
+  const safeId = displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "player";
+
+  try {
+    await firestoreDb.collection("leaderboard").doc(safeId).set({
+      name: displayName,
+      score: profile.totalScore,
+      completed: profile.totalCompleted,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    leaderboardMode = "online";
+    leaderboardLastError = "";
+    await fetchOnlineLeaderboard();
+    renderLeaderboard();
+  } catch (error) {
+    console.error("Submit online leaderboard failed:", error);
+    leaderboardMode = "local";
+    leaderboardLastError = error?.message || "Firestore submit failed";
+  }
 }
 
 function showToast(message) {
@@ -1563,9 +1660,22 @@ function renderStickerShelf() {
 }
 
 function renderLeaderboard() {
-  const entries = loadLeaderboard()
+  const sourceEntries = onlineLeaderboardCache.length ? onlineLeaderboardCache : loadLeaderboard();
+  const entries = sourceEntries
     .sort((a, b) => b.score - a.score || b.completed - a.completed)
     .slice(0, 5);
+
+  if (leaderboardStatus) {
+    leaderboardStatus.textContent = leaderboardMode === "online"
+      ? "Online leaderboard connected."
+      : leaderboardMode === "checking"
+        ? "Checking online leaderboard..."
+        : "Offline fallback: showing scores from this device.";
+  }
+
+  if (leaderboardHint) {
+    leaderboardHint.textContent = leaderboardLastError ? `Firestore note: ${leaderboardLastError}` : "";
+  }
 
   if (!entries.length) {
     leaderboardList.innerHTML = `<div class="leaderboard-item"><span class="helper-text">No scores yet. Finish a stage to appear here.</span></div>`;
@@ -1705,6 +1815,7 @@ function updateLeaderboard() {
   }
 
   saveLeaderboard(entries);
+  submitOnlineLeaderboard();
 }
 
 function grantBossRewards(level) {
@@ -1911,6 +2022,14 @@ if (sessionStorage.getItem("mathSafariIntroSeen") === "1") {
 } else {
   scheduleIntroAdvance();
 }
+initOnlineLeaderboard();
+fetchOnlineLeaderboard().then(() => renderLeaderboard());
 </script>
 </body>
 </html>
+
+
+
+
+
+
