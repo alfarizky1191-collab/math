@@ -847,6 +847,10 @@ button:disabled{cursor:not-allowed;opacity:0.6;transform:none}
       </div>
       <strong id="bestScoreText">Best score: 0</strong>
     </div>
+    <div class="action-row" style="margin-bottom:10px;">
+      <button id="challengeFriendBtn" class="primary-btn">Tantang Teman</button>
+      <button id="joinChallengeBtn" class="secondary-btn">Gabung Tantangan</button>
+    </div>
     <div id="menu"></div>
   </section>
 
@@ -1017,6 +1021,59 @@ const stageDefinitions = [
 ];
 
 const menu = document.getElementById("menu");
+const challengeFriendBtn = document.getElementById("challengeFriendBtn");
+const joinChallengeBtn = document.getElementById("joinChallengeBtn");
+
+function generateChallengeCode() {
+  // Kode tantangan random 6 karakter
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+function saveChallengeToLocal(challenge) {
+  localStorage.setItem('mathGameChallenge', JSON.stringify(challenge));
+}
+
+function loadChallengeFromLocal(code) {
+  const data = localStorage.getItem('mathGameChallenge');
+  if (!data) return null;
+  const challenge = JSON.parse(data);
+  return challenge.code === code ? challenge : null;
+}
+
+if (challengeFriendBtn) {
+  challengeFriendBtn.addEventListener("click", () => {
+    // Pilih level yang sedang dibuka
+    const currentLevel = profile.unlocked;
+    const code = generateChallengeCode();
+    const challenge = {
+      code,
+      level: currentLevel,
+      player1: profile.name || "Player 1",
+      player1Score: null,
+      player2: null,
+      player2Score: null
+    };
+    saveChallengeToLocal(challenge);
+    prompt(`Bagikan kode tantangan ini ke temanmu:`, code);
+  });
+}
+
+if (joinChallengeBtn) {
+  joinChallengeBtn.addEventListener("click", () => {
+    const code = prompt("Masukkan kode tantangan dari teman:");
+    if (!code) return;
+    const challenge = loadChallengeFromLocal(code.trim().toUpperCase());
+    if (!challenge) {
+      alert("Kode tantangan tidak ditemukan di perangkat ini.");
+      return;
+    }
+    // Tandai sebagai player 2
+    challenge.player2 = profile.name || "Player 2";
+    saveChallengeToLocal(challenge);
+    alert(`Kamu bergabung di tantangan level ${challenge.level}. Mulai mainkan level tersebut!`);
+    // Di sini bisa diarahkan langsung ke level challenge.level
+  });
+}
 const game = document.getElementById("game");
 const question = document.getElementById("question");
 const answers = document.getElementById("answers");
@@ -1447,10 +1504,36 @@ function buildNumberBondPlaceValueQuestion(level, index, variant = 0) {
 
 function buildFractionTimeMeasurementQuestion(level, index, variant = 0) {
   if (level === 16) {
-    const values = [6, 8, 10, 12, 14];
-    const total = values[(index + variant) % values.length];
-    const answer = total / 2;
-    return { q: bi(`Setengah dari ${total} adalah ...`, `Half of ${total} is ...`), a: answer, opt: makeSafeNumberOptions(answer), type: "choice" };
+    // Soal cerita matematika sederhana
+    const storyQuestions = [
+      {
+        q: bi("Ani punya 2 apel. Lalu Ani membeli 3 apel lagi. Berapa apel Ani sekarang?", "Ani has 2 apples. Then Ani buys 3 more apples. How many apples does Ani have now?"),
+        a: 5,
+        opt: makeSafeNumberOptions(5, [4, 6])
+      },
+      {
+        q: bi("Budi memiliki 4 kelereng. Ia diberi 2 kelereng oleh temannya. Berapa kelereng Budi sekarang?", "Budi has 4 marbles. He gets 2 more from his friend. How many marbles does Budi have now?"),
+        a: 6,
+        opt: makeSafeNumberOptions(6, [5, 7])
+      },
+      {
+        q: bi("Siti memetik 5 bunga. Ia memberikan 2 bunga ke temannya. Berapa bunga yang masih dimiliki Siti?", "Siti picks 5 flowers. She gives 2 to her friend. How many flowers does Siti have left?"),
+        a: 3,
+        opt: makeSafeNumberOptions(3, [2, 4])
+      },
+      {
+        q: bi("Rudi memiliki 7 permen. Ia makan 3 permen. Berapa permen yang tersisa?", "Rudi has 7 candies. He eats 3 candies. How many candies are left?"),
+        a: 4,
+        opt: makeSafeNumberOptions(4, [3, 5])
+      },
+      {
+        q: bi("Ibu membeli 6 telur. Ayah membeli 2 telur lagi. Berapa telur yang dibeli semuanya?", "Mother buys 6 eggs. Father buys 2 more eggs. How many eggs are bought in total?"),
+        a: 8,
+        opt: makeSafeNumberOptions(8, [7, 9])
+      }
+    ];
+    const item = storyQuestions[(index + variant) % storyQuestions.length];
+    return { q: item.q, a: item.a, opt: item.opt, type: "choice" };
   }
 
   if (level === 17) {
