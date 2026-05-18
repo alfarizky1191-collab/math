@@ -1,0 +1,70 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /leaderboard/{playerId} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        && request.auth.uid == playerId
+        && request.resource.data.keys().hasOnly([
+          'playerId',
+          'name',
+          'score',
+          'completed',
+          'bestStageScore',
+          'updatedAt'
+        ])
+        && request.resource.data.playerId == playerId
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 20
+        && request.resource.data.score is number
+        && request.resource.data.score >= 0
+        && request.resource.data.score <= 150
+        && request.resource.data.completed is number
+        && request.resource.data.completed >= 0
+        && request.resource.data.completed <= 30
+        && request.resource.data.bestStageScore is number
+        && request.resource.data.bestStageScore >= 0
+        && request.resource.data.bestStageScore <= 5;
+    }
+
+    match /challenges/{code} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && code.matches('^[A-Z0-9]{6}$')
+        && request.resource.data.keys().hasOnly([
+          'code',
+          'level',
+          'player1',
+          'player1Score',
+          'player2',
+          'player2Score',
+          'createdBy',
+          'createdAt',
+          'status'
+        ])
+        && request.resource.data.code == code
+        && request.resource.data.level is number
+        && request.resource.data.level >= 1
+        && request.resource.data.level <= 30
+        && request.resource.data.player1 is string
+        && request.resource.data.player1.size() <= 20
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.status == 'open';
+
+      allow update: if request.auth != null
+        && code.matches('^[A-Z0-9]{6}$')
+        && resource.data.code == code
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'player2',
+          'joinedBy',
+          'joinedAt',
+          'status'
+        ])
+        && request.resource.data.player2 is string
+        && request.resource.data.player2.size() <= 20
+        && request.resource.data.joinedBy == request.auth.uid
+        && request.resource.data.status == 'joined';
+    }
+  }
+}
