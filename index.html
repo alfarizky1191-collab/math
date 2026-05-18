@@ -922,12 +922,14 @@ button:disabled{cursor:not-allowed;opacity:0.6;transform:none}
 <audio id="wrongSound" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"></audio>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script>
 const STORAGE_KEY = "mathSafariProfile";
 const LEADERBOARD_KEY = "mathSafariLeaderboard";
 const TOTAL_LEVELS = 30;
 const QUESTIONS_PER_LEVEL = 5;
+const PASSING_SCORE = 3;
 const firebaseConfig = {
   apiKey: "AIzaSyBdvIEUneduAI5JKV2hY6Uu9XNq7wiHWvk",
   authDomain: "math-fighter-37523.firebaseapp.com",
@@ -938,7 +940,15 @@ const firebaseConfig = {
   measurementId: "G-W4ZRYF87SM"
 };
 
+function generateProfileId() {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") {
+    return window.crypto.randomUUID();
+  }
+  return `player-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 const defaultProfile = () => ({
+  id: generateProfileId(),
   name: "",
   avatar: "bunny-scout",
   unlockedAvatars: ["bunny-scout"],
@@ -949,12 +959,13 @@ const defaultProfile = () => ({
   totalCorrect: 0,
   totalCompleted: 0,
   totalScore: 0,
-  bestScore: 0
+  bestScore: 0,
+  bestStageScore: 0
 });
 
 const achievementDefinitions = [
   { id: "first_clear", title: "Langkah Pertama", desc: "Selesaikan 1 level.", check: state => state.totalCompleted >= 1 },
-  { id: "perfect_score", title: "Bintang Lima", desc: "Dapat skor 5 di satu level.", check: state => state.bestScore >= 5 },
+  { id: "perfect_score", title: "Bintang Lima", desc: "Dapat skor 5 di satu level.", check: state => state.bestStageScore >= QUESTIONS_PER_LEVEL },
   { id: "shape_finder", title: "Shape Finder", desc: "Selesaikan level bentuk.", check: state => state.completedLevels.some(level => level >= 21 && level <= 25) },
   { id: "pattern_reader", title: "Pattern Reader", desc: "Selesaikan level pola.", check: state => state.completedLevels.some(level => level >= 26) },
   { id: "math_runner", title: "Math Runner", desc: "Jawab 25 soal benar.", check: state => state.totalCorrect >= 25 },
@@ -1034,14 +1045,81 @@ function saveChallengeToLocal(challenge) {
 }
 
 function loadChallengeFromLocal(code) {
-  const data = localStorage.getItem('mathGameChallenge');
-  if (!data) return null;
-  const challenge = JSON.parse(data);
-  return challenge.code === code ? challenge : null;
+  try {
+    const data = localStorage.getItem('mathGameChallenge');
+    if (!data) return null;
+    const challenge = JSON.parse(data);
+    return challenge.code === code ? challenge : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function saveChallenge(challenge) {
+  saveChallengeToLocal(challenge);
+
+  if (!onlineLeaderboardReady || !firestoreDb || !firebaseUser) {
+    return "local";
+  }
+
+  try {
+    await firestoreDb.collection("challenges").doc(challenge.code).set({
+      ...challenge,
+      createdBy: firebaseUser.uid,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      status: "open"
+    });
+    return "online";
+  } catch (error) {
+    console.error("Save challenge failed:", error);
+    leaderboardLastError = error?.message || "Challenge save failed";
+    return "local";
+  }
+}
+
+async function loadChallenge(code) {
+  if (onlineLeaderboardReady && firestoreDb) {
+    try {
+      const doc = await firestoreDb.collection("challenges").doc(code).get();
+      if (doc.exists) {
+        return { code, ...doc.data() };
+      }
+    } catch (error) {
+      console.error("Load challenge failed:", error);
+      leaderboardLastError = error?.message || "Challenge load failed";
+    }
+  }
+
+  return loadChallengeFromLocal(code);
+}
+
+async function joinChallenge(challenge) {
+  const updatedChallenge = {
+    ...challenge,
+    player2: profile.name || "Player 2",
+    joinedAt: Date.now()
+  };
+  saveChallengeToLocal(updatedChallenge);
+
+  if (!onlineLeaderboardReady || !firestoreDb || !firebaseUser) {
+    return;
+  }
+
+  try {
+    await firestoreDb.collection("challenges").doc(challenge.code).set({
+      player2: updatedChallenge.player2,
+      joinedBy: firebaseUser.uid,
+      joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      status: "joined"
+    }, { merge: true });
+  } catch (error) {
+    console.error("Join challenge failed:", error);
+    leaderboardLastError = error?.message || "Challenge join failed";
+  }
 }
 
 if (challengeFriendBtn) {
-  challengeFriendBtn.addEventListener("click", () => {
+  challengeFriendBtn.addEventListener("click", async () => {
     // Pilih level yang sedang dibuka
     const currentLevel = profile.unlocked;
     const code = generateChallengeCode();
@@ -1053,25 +1131,33 @@ if (challengeFriendBtn) {
       player2: null,
       player2Score: null
     };
-    saveChallengeToLocal(challenge);
-    prompt(`Bagikan kode tantangan ini ke temanmu:`, code);
+    const mode = await saveChallenge(challenge);
+    const scope = mode === "online" ? "online" : "di perangkat ini";
+    prompt(`Bagikan kode tantangan ${scope} ke temanmu:`, code);
   });
 }
 
 if (joinChallengeBtn) {
-  joinChallengeBtn.addEventListener("click", () => {
+  joinChallengeBtn.addEventListener("click", async () => {
     const code = prompt("Masukkan kode tantangan dari teman:");
     if (!code) return;
-    const challenge = loadChallengeFromLocal(code.trim().toUpperCase());
+    const challenge = await loadChallenge(code.trim().toUpperCase());
     if (!challenge) {
-      alert("Kode tantangan tidak ditemukan di perangkat ini.");
+      alert("Kode tantangan tidak ditemukan.");
       return;
     }
-    // Tandai sebagai player 2
-    challenge.player2 = profile.name || "Player 2";
-    saveChallengeToLocal(challenge);
-    alert(`Kamu bergabung di tantangan level ${challenge.level}. Mulai mainkan level tersebut!`);
-    // Di sini bisa diarahkan langsung ke level challenge.level
+    const challengeLevel = Number(challenge.level);
+    if (!Number.isInteger(challengeLevel) || challengeLevel < 1 || challengeLevel > TOTAL_LEVELS) {
+      alert("Kode tantangan tidak valid.");
+      return;
+    }
+    if (challengeLevel > profile.unlocked) {
+      alert(`Stage ${challengeLevel} belum terbuka. Selesaikan stage sebelumnya dulu.`);
+      return;
+    }
+    await joinChallenge({ ...challenge, level: challengeLevel, code: code.trim().toUpperCase() });
+    alert(`Kamu bergabung di tantangan level ${challengeLevel}. Mulai mainkan level tersebut!`);
+    start(challengeLevel);
   });
 }
 const game = document.getElementById("game");
@@ -1131,10 +1217,26 @@ const introScenes = [
 function loadProfile() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return { ...defaultProfile(), ...saved };
+    return normalizeProfile(saved);
   } catch (error) {
     return defaultProfile();
   }
+}
+
+function normalizeProfile(saved) {
+  const next = { ...defaultProfile(), ...(saved || {}) };
+  next.id = next.id || generateProfileId();
+  next.unlocked = Math.min(TOTAL_LEVELS, Math.max(1, Number(next.unlocked) || 1));
+  next.completedLevels = Array.isArray(next.completedLevels) ? next.completedLevels : [];
+  next.achievements = Array.isArray(next.achievements) ? next.achievements : [];
+  next.unlockedAvatars = Array.isArray(next.unlockedAvatars) ? next.unlockedAvatars : ["bunny-scout"];
+  next.stickers = Array.isArray(next.stickers) ? next.stickers : [];
+  next.totalCompleted = next.completedLevels.length;
+  next.totalCorrect = Math.max(0, Number(next.totalCorrect) || 0);
+  next.totalScore = Math.max(0, Number(next.totalScore) || 0);
+  next.bestScore = next.totalScore;
+  next.bestStageScore = Math.min(QUESTIONS_PER_LEVEL, Math.max(0, Number(next.bestStageScore) || 0));
+  return next;
 }
 
 let profile = loadProfile();
@@ -1143,6 +1245,7 @@ let qIndex = 0;
 let score = 0;
 let answered = false;
 let firestoreDb = null;
+let firebaseUser = null;
 let onlineLeaderboardCache = [];
 let onlineLeaderboardReady = false;
 let leaderboardMode = "checking";
@@ -1165,7 +1268,7 @@ function saveLeaderboard(entries) {
   localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
 }
 
-function initOnlineLeaderboard() {
+async function initOnlineLeaderboard() {
   try {
     if (!window.firebase) {
       leaderboardMode = "local";
@@ -1179,6 +1282,16 @@ function initOnlineLeaderboard() {
     onlineLeaderboardReady = true;
     leaderboardMode = "checking";
     leaderboardLastError = "";
+    if (firebase.auth) {
+      try {
+        const credential = await firebase.auth().signInAnonymously();
+        firebaseUser = credential.user;
+      } catch (authError) {
+        console.warn("Anonymous auth failed; online writes disabled:", authError);
+        firebaseUser = null;
+        leaderboardLastError = "Online write access is disabled until Firebase Anonymous Auth is enabled.";
+      }
+    }
   } catch (error) {
     console.error("Firebase init failed:", error);
     onlineLeaderboardReady = false;
@@ -1217,19 +1330,21 @@ async function fetchOnlineLeaderboard() {
 }
 
 async function submitOnlineLeaderboard() {
-  if (!onlineLeaderboardReady || !firestoreDb) {
+  if (!onlineLeaderboardReady || !firestoreDb || !firebaseUser) {
     leaderboardMode = "local";
+    leaderboardLastError = firebaseUser ? "" : "Online write access needs Firebase Anonymous Auth.";
     return;
   }
 
   const displayName = (profile.name.trim() || "New Adventurer").slice(0, 20);
-  const safeId = displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "player";
 
   try {
-    await firestoreDb.collection("leaderboard").doc(safeId).set({
+    await firestoreDb.collection("leaderboard").doc(firebaseUser.uid).set({
+      playerId: firebaseUser.uid,
       name: displayName,
-      score: profile.totalScore,
-      completed: profile.totalCompleted,
+      score: Math.max(0, Number(profile.totalScore) || 0),
+      completed: profile.completedLevels.length,
+      bestStageScore: Math.max(0, Number(profile.bestStageScore) || 0),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
     leaderboardMode = "online";
@@ -1333,16 +1448,16 @@ function buildUniqueQuestion(level, index, usedQuestionKeys) {
 }
 
 function buildCambridgeQuestion(level, index, variant = 0) {
-  if (level <= 5) {
+  if (level <= 3) {
     return buildNumberSystemQuestion(level, index);
   }
-  if (level <= 10) {
+  if (level <= 9) {
     return buildAdditionSubtractionQuestion(level, index, variant);
   }
   if (level <= 15) {
     return buildNumberBondPlaceValueQuestion(level, index, variant);
   }
-  if (level <= 20) {
+  if (level <= 21) {
     return buildFractionTimeMeasurementQuestion(level, index, variant);
   }
   if (level <= 25) {
@@ -1504,36 +1619,10 @@ function buildNumberBondPlaceValueQuestion(level, index, variant = 0) {
 
 function buildFractionTimeMeasurementQuestion(level, index, variant = 0) {
   if (level === 16) {
-    // Soal cerita matematika sederhana
-    const storyQuestions = [
-      {
-        q: bi("Ani punya 2 apel. Lalu Ani membeli 3 apel lagi. Berapa apel Ani sekarang?", "Ani has 2 apples. Then Ani buys 3 more apples. How many apples does Ani have now?"),
-        a: 5,
-        opt: makeSafeNumberOptions(5, [4, 6])
-      },
-      {
-        q: bi("Budi memiliki 4 kelereng. Ia diberi 2 kelereng oleh temannya. Berapa kelereng Budi sekarang?", "Budi has 4 marbles. He gets 2 more from his friend. How many marbles does Budi have now?"),
-        a: 6,
-        opt: makeSafeNumberOptions(6, [5, 7])
-      },
-      {
-        q: bi("Siti memetik 5 bunga. Ia memberikan 2 bunga ke temannya. Berapa bunga yang masih dimiliki Siti?", "Siti picks 5 flowers. She gives 2 to her friend. How many flowers does Siti have left?"),
-        a: 3,
-        opt: makeSafeNumberOptions(3, [2, 4])
-      },
-      {
-        q: bi("Rudi memiliki 7 permen. Ia makan 3 permen. Berapa permen yang tersisa?", "Rudi has 7 candies. He eats 3 candies. How many candies are left?"),
-        a: 4,
-        opt: makeSafeNumberOptions(4, [3, 5])
-      },
-      {
-        q: bi("Ibu membeli 6 telur. Ayah membeli 2 telur lagi. Berapa telur yang dibeli semuanya?", "Mother buys 6 eggs. Father buys 2 more eggs. How many eggs are bought in total?"),
-        a: 8,
-        opt: makeSafeNumberOptions(8, [7, 9])
-      }
-    ];
-    const item = storyQuestions[(index + variant) % storyQuestions.length];
-    return { q: item.q, a: item.a, opt: item.opt, type: "choice" };
+    const values = [2, 4, 6, 8, 10];
+    const total = values[(index + variant) % values.length];
+    const answer = total / 2;
+    return { q: bi(`Setengah dari ${total} adalah ...`, `One half of ${total} is ...`), a: answer, opt: makeSafeNumberOptions(answer), type: "choice" };
   }
 
   if (level === 17) {
@@ -1558,6 +1647,18 @@ function buildFractionTimeMeasurementQuestion(level, index, variant = 0) {
       { q: bi("Mana yang lebih panjang?", "Which is longer?"), a: bi("Pita 18 cm", "18 cm ribbon"), opt: [bi("Penghapus 5 cm", "5 cm eraser"), bi("Koin 3 cm", "3 cm coin")] }
     ];
     const item = lengthTemplates[(index + variant) % lengthTemplates.length];
+    return { q: item.q, a: item.a, opt: makeOptions(item.a, item.opt), type: "choice" };
+  }
+
+  if (level === 21) {
+    const mixedTemplates = [
+      { q: bi("Mana yang lebih panjang?", "Which is longer?"), a: bi("Tali 20 cm", "20 cm rope"), opt: [bi("Pensil 10 cm", "10 cm pencil"), bi("Klip 3 cm", "3 cm paper clip")] },
+      { q: bi("Mana yang lebih berat?", "Which is heavier?"), a: bi("Buku", "Book"), opt: [bi("Bulu", "Feather"), bi("Daun", "Leaf")] },
+      { q: bi("Mana yang lebih pendek?", "Which is shorter?"), a: bi("Klip 2 cm", "2 cm paper clip"), opt: [bi("Sedotan 14 cm", "14 cm straw"), bi("Pita 18 cm", "18 cm ribbon")] },
+      { q: bi("Mana yang lebih ringan?", "Which is lighter?"), a: bi("Kertas", "Paper"), opt: [bi("Tas", "Bag"), bi("Kursi", "Chair")] },
+      { q: bi("Mana yang cocok untuk mengukur panjang meja?", "Which tool is good for measuring table length?"), a: bi("Penggaris", "Ruler"), opt: [bi("Timbangan", "Scale"), bi("Jam", "Clock")] }
+    ];
+    const item = mixedTemplates[(index + variant) % mixedTemplates.length];
     return { q: item.q, a: item.a, opt: makeOptions(item.a, item.opt), type: "choice" };
   }
 
@@ -1681,7 +1782,7 @@ function renderProfile() {
   achievementCount.textContent = `${profile.achievements.length}/${achievementDefinitions.length}`;
   playerRank.textContent = rank.name;
   playerRankBadge.className = `rank-badge ${rank.iconClass}`;
-  bestScoreText.textContent = `Total score: ${profile.totalScore}`;
+  bestScoreText.textContent = `Total: ${profile.totalScore} | Best stage: ${profile.bestStageScore || 0}/${QUESTIONS_PER_LEVEL}`;
   currentAvatarToken.textContent = avatar.icon;
   currentAvatarName.textContent = avatar.name;
   avatarUnlockHint.textContent = `Unlocked avatars: ${profile.unlockedAvatars.length}/${avatarDefinitions.length}`;
@@ -1884,16 +1985,22 @@ function updateDashboard() {
 function updateLeaderboard() {
   const displayName = (profile.name.trim() || "New Adventurer").slice(0, 20);
   const entries = loadLeaderboard();
-  const existing = entries.find(item => item.name === displayName);
+  const playerId = profile.id || generateProfileId();
+  profile.id = playerId;
+  const existing = entries.find(item => item.id === playerId);
 
   if (existing) {
+    existing.name = displayName;
     existing.score = Math.max(existing.score, profile.totalScore);
     existing.completed = Math.max(existing.completed, profile.totalCompleted);
+    existing.bestStageScore = Math.max(existing.bestStageScore || 0, profile.bestStageScore || 0);
   } else {
     entries.push({
+      id: playerId,
       name: displayName,
       score: profile.totalScore,
-      completed: profile.totalCompleted
+      completed: profile.totalCompleted,
+      bestStageScore: profile.bestStageScore || 0
     });
   }
 
@@ -1963,6 +2070,7 @@ function showQuestion() {
   const optionList = shuffle(data.opt);
   optionList.forEach(option => {
     const element = data.type === "tap" ? document.createElement("div") : document.createElement("button");
+    element.dataset.correct = option === data.a ? "true" : "false";
     if (data.type === "tap") {
       element.className = "choice-box";
       element.innerHTML = formatBilingual(option);
@@ -1984,31 +2092,35 @@ function markButtonsDisabled() {
   });
 }
 
+function revealCorrectAnswer() {
+  [...answers.children, ...extra.children].forEach(item => {
+    if (item.dataset.correct === "true") {
+      item.classList.add("correct");
+    }
+  });
+}
+
 function checkAnswer(element, selected, answer) {
   if (answered) {
     return;
   }
 
+  answered = true;
   if (selected === answer) {
-    answered = true;
     score++;
-    if (!profile.completedLevels.includes(current)) {
-      profile.totalCorrect++;
-    }
     element.classList.add("correct");
     correctSound.currentTime = 0;
     correctSound.play();
-    markButtonsDisabled();
     setTimeout(nextQuestion, 500);
   } else {
-    score = Math.max(0, score - 1);
     element.classList.add("wrong");
+    revealCorrectAnswer();
     wrongSound.currentTime = 0;
     wrongSound.play();
-    element.style.pointerEvents = "none";
-    element.disabled = true;
+    setTimeout(nextQuestion, 900);
   }
 
+  markButtonsDisabled();
   scoreText.textContent = `Stage score: ${score}`;
 }
 
@@ -2026,26 +2138,38 @@ function nextQuestion() {
 function finishLevel() {
   const firstCompletion = !profile.completedLevels.includes(current);
   const stage = getStageInfo(current);
+  const passed = score >= PASSING_SCORE;
   let newRewards = [];
 
-  if (firstCompletion) {
+  profile.bestStageScore = Math.max(profile.bestStageScore || 0, score);
+
+  if (firstCompletion && passed) {
     profile.completedLevels.push(current);
     profile.totalCompleted++;
+    profile.totalCorrect += score;
     profile.totalScore += score;
     if (current % 5 === 0) {
       newRewards = grantBossRewards(current);
     }
   }
 
-  if (firstCompletion && current === profile.unlocked && profile.unlocked < TOTAL_LEVELS) {
+  if (firstCompletion && passed && current === profile.unlocked && profile.unlocked < TOTAL_LEVELS) {
     profile.unlocked++;
   }
 
-  profile.bestScore = Math.max(profile.bestScore, profile.totalScore);
-  updateLeaderboard();
+  profile.bestScore = profile.totalScore;
+  if (passed) {
+    updateLeaderboard();
+  }
   updateDashboard();
   const rewardText = newRewards.length ? `\nRewards: ${newRewards.join(", ")}` : "";
-  alert(`${current % 5 === 0 ? "Boss Stage" : "Dungeon Stage"} ${current} - ${stage.title} completed!\nStage score: ${score}/${QUESTIONS_PER_LEVEL}\nTotal score: ${profile.totalScore}${firstCompletion ? rewardText : "\nStage ini sudah pernah selesai, jadi total score tidak bertambah."}`);
+  const resultText = passed
+    ? `${current % 5 === 0 ? "Boss Stage" : "Dungeon Stage"} ${current} - ${stage.title} completed!`
+    : `${current % 5 === 0 ? "Boss Stage" : "Dungeon Stage"} ${current} - ${stage.title} needs practice.`;
+  const progressText = passed
+    ? `${firstCompletion ? rewardText : "\nStage ini sudah pernah selesai, jadi total score tidak bertambah."}`
+    : `\nButuh minimal ${PASSING_SCORE}/${QUESTIONS_PER_LEVEL} untuk clear dan membuka stage berikutnya.`;
+  alert(`${resultText}\nStage score: ${score}/${QUESTIONS_PER_LEVEL}\nTotal score: ${profile.totalScore}${progressText}`);
   backToMenu();
 }
 
@@ -2105,8 +2229,9 @@ if (sessionStorage.getItem("mathSafariIntroSeen") === "1") {
 } else {
   scheduleIntroAdvance();
 }
-initOnlineLeaderboard();
-fetchOnlineLeaderboard().then(() => renderLeaderboard());
+initOnlineLeaderboard()
+  .then(fetchOnlineLeaderboard)
+  .then(() => renderLeaderboard());
 </script>
 </body>
 </html>
